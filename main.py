@@ -15,8 +15,7 @@ def handle_upload(event):
                 table_view = ui.tab('Table View')
                 line_chart = ui.tab('Line Chart View')
         
-        
-            with ui.tab_panels(tabs, value=line_chart).classes('w-full'):
+            with ui.tab_panels(tabs, value=table_view).classes('w-full'):
                 with ui.tab_panel(table_view):
                     # create table from csv
                     df_table = df.drop(columns=['Unnamed: 6'], errors='ignore')
@@ -27,12 +26,13 @@ def handle_upload(event):
                     y_columns = [col for col in df.columns if col not in ['Time', 'Unnamed: 6']]
                     fig = px.line(df, x='Time', y=y_columns,
                                 labels={'value': 'Values', 'variable': 'Variables'},
-                                title='Time Series Data')
+                                title='')
                     ui.plotly(fig).classes('mx-auto').style('width: 85vw; height: 80vh;')
     
     ui.page('/results')(show_results)
-    ui.run_javascript('window.location.href = "/results";')  # Navigate to the results page after upload is complete
+    ui.run_javascript('window.location.href = "/results";')  # load reults page
 
+# create main (upload) page
 @ui.page('/')
 def main_page():
     global upload_component
@@ -40,8 +40,9 @@ def main_page():
     with ui.card().classes("mx-auto").style('background: transparent; border: none; box-shadow: none;'):
         upload_component = ui.upload(on_upload=handle_upload).props('accept=".csv"').classes('max-w-full')
 
+# create results page
 @ui.page('/results')
 def results_page():
-    pass  # The content of this page will be generated dynamically in handle_upload
+    pass
 
 ui.run()
