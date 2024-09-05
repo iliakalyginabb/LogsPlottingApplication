@@ -37,9 +37,10 @@ def handle_upload(event):
 
                     # create checkboxes
                     checkboxes = []
-                    for col in enumerate(y_columns):
-                        checkbox = ui.checkbox(f'Show {col}', value=True, on_change=update_visibility)
-                        checkboxes.append(checkbox)
+                    with ui.row().classes('mx-auto'):
+                        for col in enumerate(y_columns):
+                            checkbox = ui.checkbox(f'Show {col}', value=True, on_change=update_visibility)
+                            checkboxes.append(checkbox)
 
     ui.page('/results')(show_results)
     ui.run_javascript('window.location.href = "/results";')  # load results page
@@ -52,7 +53,7 @@ def main_page():
     with ui.card().classes("mx-auto").style('background: transparent; border: none; box-shadow: none;'):
         upload_component = ui.upload(on_upload=handle_upload).props('accept=".csv"').classes('max-w-full')
 
-# create results page
+# create results route
 @ui.page('/results')
 def results_page():
     pass
