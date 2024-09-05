@@ -19,7 +19,7 @@ def handle_upload(event):
                 with ui.tab_panel(table_view):
                     # create table from csv
                     df_table = df.drop(columns=['Unnamed: 6'], errors='ignore')
-                    ui.table(columns=[{'name': col, 'label': col, 'field': col} for col in df_table.columns], rows=df_table.to_dict(orient='records')).classes('mx-auto')
+                    ui.table(columns=[{'name': col, 'label': col, 'field': col, 'sortable':True} for col in df_table.columns], rows=df_table.to_dict(orient='records')).classes('mx-auto')
                 
                 with ui.tab_panel(line_chart):
                     # create plotly graph from csv
@@ -27,10 +27,22 @@ def handle_upload(event):
                     fig = px.line(df, x='Time', y=y_columns,
                                 labels={'value': 'Values', 'variable': 'Variables'},
                                 title='')
-                    ui.plotly(fig).classes('mx-auto').style('width: 85vw; height: 80vh;')
-    
+                    plot = ui.plotly(fig).classes('mx-auto').style('width: 85vw; height: 80vh;')
+
+                    # update plot visibility
+                    def update_visibility():
+                        for i, checkbox in enumerate(checkboxes):
+                            fig.data[i].visible = checkbox.value
+                        plot.update()
+
+                    # create checkboxes
+                    checkboxes = []
+                    for col in enumerate(y_columns):
+                        checkbox = ui.checkbox(f'Show {col}', value=True, on_change=update_visibility)
+                        checkboxes.append(checkbox)
+
     ui.page('/results')(show_results)
-    ui.run_javascript('window.location.href = "/results";')  # load reults page
+    ui.run_javascript('window.location.href = "/results";')  # load results page
 
 # create main (upload) page
 @ui.page('/')
