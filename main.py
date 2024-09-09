@@ -17,6 +17,19 @@ def handle_upload(event):
         with ui.left_drawer(fixed=False).style('background-color: #ebf1fa').props('bordered') as left_drawer:
             ui.label('Signals')
 
+            # update plot visibility
+            def update_visibility():
+                for i, checkbox in enumerate(checkboxes):
+                    fig.data[i].visible = checkbox.value
+                plot.update()
+
+            # create checkboxes
+            checkboxes = []
+            y_columns = [col for col in df.columns if col not in ['Time', 'Unnamed: 6']]
+            for col in y_columns:
+                checkbox = ui.checkbox(f'{col}', value=True, on_change=update_visibility)
+                checkboxes.append(checkbox)
+
         # main content
         with ui.row().classes('mx-auto'):
 
@@ -29,7 +42,7 @@ def handle_upload(event):
                 line_chart = ui.tab('Line Chart View')
 
             # tab panels
-            with ui.tab_panels(tabs, value=table_view).classes('w-full'):
+            with ui.tab_panels(tabs, value=line_chart).classes('w-full'):
                 with ui.tab_panel(table_view):
                     # create table from csv
                     df_table = df.drop(columns=['Unnamed: 6'], errors='ignore')
@@ -37,24 +50,10 @@ def handle_upload(event):
                 
                 with ui.tab_panel(line_chart):
                     # create plotly graph from csv
-                    y_columns = [col for col in df.columns if col not in ['Time', 'Unnamed: 6']]
                     fig = px.line(df, x='Time', y=y_columns,
                                 labels={'value': 'Values', 'variable': 'Variables'},
                                 title='')
                     plot = ui.plotly(fig).classes('mx-auto').style('width: 85vw; height: 80vh;')
-
-                    # update plot visibility
-                    def update_visibility():
-                        for i, checkbox in enumerate(checkboxes):
-                            fig.data[i].visible = checkbox.value
-                        plot.update()
-
-                    # create checkboxes
-                    checkboxes = []
-                    with ui.row().classes('mx-auto'):
-                        for col in enumerate(y_columns):
-                            checkbox = ui.checkbox(f'Show {col}', value=True, on_change=update_visibility)
-                            checkboxes.append(checkbox)
 
     ui.page('/results')(show_results)
     ui.run_javascript('window.location.href = "/results";')  # load results page
