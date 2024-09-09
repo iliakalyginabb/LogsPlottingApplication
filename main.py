@@ -30,30 +30,38 @@ def handle_upload(event):
                 checkbox = ui.checkbox(f'{col}', value=True, on_change=update_visibility)
                 checkboxes.append(checkbox)
 
+            # back button
+            ui.button('Upload another').on('click', lambda: ui.run_javascript('window.location.href = "/";')).classes('mx-auto')
+
         # main content
         with ui.row().classes('mx-auto'):
-
-            # back button
-            ui.button('Back').on('click', lambda: ui.run_javascript('window.location.href = "/";')).classes('mx-auto')
+            
+            # layout button
+            with ui.button('Layout').classes('mx-auto'):
+                with ui.menu() as menu:
+                    ui.menu_item('1x1')
+                    ui.menu_item('1x2')
+                    ui.menu_item('2x1')
+                    ui.menu_item('2x2')
 
             # tabs
             with ui.tabs().classes('w-full') as tabs:
-                table_view = ui.tab('Table View')
                 line_chart = ui.tab('Line Chart View')
+                table_view = ui.tab('Table View')
 
             # tab panels
             with ui.tab_panels(tabs, value=line_chart).classes('w-full'):
-                with ui.tab_panel(table_view):
-                    # create table from csv
-                    df_table = df.drop(columns=['Unnamed: 6'], errors='ignore')
-                    ui.table(columns=[{'name': col, 'label': col, 'field': col, 'sortable':True} for col in df_table.columns], rows=df_table.to_dict(orient='records')).classes('mx-auto')
-                
                 with ui.tab_panel(line_chart):
                     # create plotly graph from csv
                     fig = px.line(df, x='Time', y=y_columns,
                                 labels={'value': 'Values', 'variable': 'Variables'},
                                 title='')
                     plot = ui.plotly(fig).classes('mx-auto').style('width: 85vw; height: 80vh;')
+                
+                with ui.tab_panel(table_view):
+                    # create table from csv
+                    df_table = df.drop(columns=['Unnamed: 6'], errors='ignore')
+                    ui.table(columns=[{'name': col, 'label': col, 'field': col, 'sortable':True} for col in df_table.columns], rows=df_table.to_dict(orient='records')).classes('mx-auto')
 
     ui.page('/results')(show_results)
     ui.run_javascript('window.location.href = "/results";')  # load results page
