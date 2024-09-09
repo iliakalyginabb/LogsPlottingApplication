@@ -8,13 +8,27 @@ def handle_upload(event):
     df = pd.read_csv(StringIO(content), delimiter=';')
     
     def show_results():
+
+        # navbar
+        with ui.header(elevated=True).style('background-color: #3874c8').classes('items-center justify-between'):
+            ui.button(on_click=lambda: left_drawer.toggle(), icon='menu').props('flat color=white')
+
+        # sidebar
+        with ui.left_drawer(fixed=False).style('background-color: #ebf1fa').props('bordered') as left_drawer:
+            ui.label('Signals')
+
+        # main content
         with ui.row().classes('mx-auto'):
+
+            # back button
             ui.button('Back').on('click', lambda: ui.run_javascript('window.location.href = "/";')).classes('mx-auto')
 
+            # tabs
             with ui.tabs().classes('w-full') as tabs:
                 table_view = ui.tab('Table View')
                 line_chart = ui.tab('Line Chart View')
-        
+
+            # tab panels
             with ui.tab_panels(tabs, value=table_view).classes('w-full'):
                 with ui.tab_panel(table_view):
                     # create table from csv
