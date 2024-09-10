@@ -6,8 +6,11 @@ from io import StringIO
 def handle_upload(event):
     content = event.content.read().decode('utf-8')
     df = pd.read_csv(StringIO(content), delimiter=';')
-    
+
     def show_results():
+
+        # define y columns
+        y_columns = [col for col in df.columns if col not in ['Time', 'Unnamed: 6']]
 
         # navbar
         with ui.header(elevated=True).style('background-color: #3874c8').classes('items-center justify-between'):
@@ -29,19 +32,36 @@ def handle_upload(event):
                     fig2.data[i].visible = checkbox.value
                 plot2.update()
 
-            # create checkboxes for the first plot
-            checkboxes_first_plot = []
-            y_columns = [col for col in df.columns if col not in ['Time', 'Unnamed: 6']]
-            for col in y_columns:
-                checkbox = ui.checkbox(f'{col}', value=True, on_change=update_visibility_first_plot)
-                checkboxes_first_plot.append(checkbox)
 
-            # create checkboxes for the second plot
-            checkboxes_second_plot = []
-            for col in y_columns:
-                checkbox = ui.checkbox(f'{col}', value=True, on_change=update_visibility_second_plot)
-                checkboxes_second_plot.append(checkbox)
-            
+            # create Plot 1 settings dialog
+            def open_plot1_settings():
+                global checkboxes_first_plot
+                checkboxes_first_plot = []
+                with ui.dialog() as plot1_settings_dialog:
+                    with ui.card():
+                        ui.label("Plot 1 Settings")
+                        for col in y_columns:
+                            checkbox = ui.checkbox(f'{col}', value=True, on_change=update_visibility_first_plot)
+                            checkboxes_first_plot.append(checkbox)
+                        ui.button('Close', on_click=plot1_settings_dialog.close)
+                plot1_settings_dialog.open()
+
+            # create Plot 2 settings dialog
+            def open_plot2_settings():
+                global checkboxes_second_plot
+                checkboxes_second_plot = []
+                with ui.dialog() as plot2_settings_dialog:
+                    with ui.card():
+                        ui.label("Plot 2 Settings")
+                        for col in y_columns:
+                            checkbox = ui.checkbox(f'{col}', value=True, on_change=update_visibility_second_plot)
+                            checkboxes_second_plot.append(checkbox)
+                        ui.button('Close', on_click=plot2_settings_dialog.close)
+                plot2_settings_dialog.open()
+
+            # Add buttons to open dialogs for plot settings
+            ui.button('Plot 1 settings', on_click=open_plot1_settings).classes('w-full')
+            ui.button('Plot 2 settings', on_click=open_plot2_settings).classes('w-full')
 
             # upload csv button
             ui.button('Upload CSV').on('click', lambda: ui.run_javascript('window.location.href = "/";')).classes('mx-auto')
@@ -77,8 +97,6 @@ def handle_upload(event):
                     # create table from csv
                     df_table = df.drop(columns=['Unnamed: 6'], errors='ignore')
                     ui.table(columns=[{'name': col, 'label': col, 'field': col, 'sortable':True} for col in df_table.columns], rows=df_table.to_dict(orient='records')).classes('mx-auto')
-                
-                
 
     ui.page('/results')(show_results)
     ui.run_javascript('window.location.href = "/results";')  # load results page
