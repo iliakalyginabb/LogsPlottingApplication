@@ -43,15 +43,15 @@ def show_results():
                 fig2.data[i].visible = checkbox.value
             plot2.update()
 
-        # update plot visibility for the second plot
+        # update plot visibility for the third plot
         def update_visibility_third_plot():
-            for i, checkbox in enumerate(checkboxes_second_plot):
+            for i, checkbox in enumerate(checkboxes_third_plot):
                 fig3.data[i].visible = checkbox.value
             plot3.update()
         
-        # update plot visibility for the second plot
+        # update plot visibility for the fourth plot
         def update_visibility_fourth_plot():
-            for i, checkbox in enumerate(checkboxes_second_plot):
+            for i, checkbox in enumerate(checkboxes_fourth_plot):
                 fig4.data[i].visible = checkbox.value
             plot4.update()
 
@@ -83,35 +83,35 @@ def show_results():
         
         # create Plot 3 settings dialog
         def open_plot3_settings():
-            global checkboxes_second_plot
-            checkboxes_second_plot = []
+            global checkboxes_third_plot
+            checkboxes_third_plot = []
             with ui.dialog() as plot3_signals_dialog:
                 with ui.card():
                     ui.label("Plot 3 signals")
                     for col in y_columns:
                         checkbox = ui.checkbox(f'{col}', value=True, on_change=update_visibility_third_plot)
-                        checkboxes_second_plot.append(checkbox)
+                        checkboxes_third_plot.append(checkbox)
                     ui.button('Close', on_click=plot3_signals_dialog.close)
             plot3_signals_dialog.open()
         
-        # create Plot 2 settings dialog
+        # create Plot 4 settings dialog
         def open_plot4_settings():
-            global checkboxes_second_plot
-            checkboxes_second_plot = []
+            global checkboxes_fourth_plot
+            checkboxes_fourth_plot = []
             with ui.dialog() as plot4_signals_dialog:
                 with ui.card():
                     ui.label("Plot 4 signals")
                     for col in y_columns:
                         checkbox = ui.checkbox(f'{col}', value=True, on_change=update_visibility_fourth_plot)
-                        checkboxes_second_plot.append(checkbox)
+                        checkboxes_fourth_plot.append(checkbox)
                     ui.button('Close', on_click=plot4_signals_dialog.close)
             plot4_signals_dialog.open()
 
         # Add buttons to open dialogs for plot settings
-        ui.button('Plot 1 settings', on_click=open_plot1_settings).classes('w-full')
-        ui.button('Plot 2 settings', on_click=open_plot2_settings).classes('w-full')
-        ui.button('Plot 3 settings', on_click=open_plot3_settings).classes('w-full')
-        ui.button('Plot 4 settings', on_click=open_plot4_settings).classes('w-full')
+        button_plot1 = ui.button('Plot 1 settings', on_click=open_plot1_settings).classes('w-full')
+        button_plot2 = ui.button('Plot 2 settings', on_click=open_plot2_settings).classes('w-full')
+        button_plot3 = ui.button('Plot 3 settings', on_click=open_plot3_settings).classes('w-full')
+        button_plot4 = ui.button('Plot 4 settings', on_click=open_plot4_settings).classes('w-full')
 
         # upload csv button
         ui.button('Upload CSV').on('click', lambda: ui.run_javascript('window.location.href = "/";')).classes('mx-auto')
@@ -140,21 +140,37 @@ def show_results():
                             plot2.style('display: none;')
                             plot3.style('display: none;')
                             plot4.style('display: none;')
+                            button_plot1.style('display: block;')
+                            button_plot2.style('display: none;')
+                            button_plot3.style('display: none;')
+                            button_plot4.style('display: none;')
                         elif layout == "1x2":
                             plot1.style('display: block; width: 40vw; height: 80vh;').classes('mx-auto')
                             plot2.style('display: block; width: 40vw; height: 80vh;').classes('mx-auto')
                             plot3.style('display: none;')
                             plot4.style('display: none;')
+                            button_plot1.style('display: block;')
+                            button_plot2.style('display: block;')
+                            button_plot3.style('display: none;')
+                            button_plot4.style('display: none;')
                         elif layout == "2x1":
                             plot1.style('display: block; width: 85vw; height: 40vh;').classes('mx-auto')
                             plot2.style('display: block; width: 85vw; height: 40vh;').classes('mx-auto')
                             plot3.style('display: none;')
                             plot4.style('display: none;')
+                            button_plot1.style('display: block;')
+                            button_plot2.style('display: block;')
+                            button_plot3.style('display: none;')
+                            button_plot4.style('display: none;')
                         elif layout == "2x2":
                             plot1.style('display: block; width: 42vw; height: 40vh;').classes('mx-auto')
                             plot2.style('display: block; width: 42vw; height: 40vh;').classes('mx-auto')
                             plot3.style('display: block; width: 42vw; height: 40vh;').classes('mx-auto')
                             plot4.style('display: block; width: 42vw; height: 40vh;').classes('mx-auto')
+                            button_plot1.style('display: block;')
+                            button_plot2.style('display: block;')
+                            button_plot3.style('display: block;')
+                            button_plot4.style('display: block;')
 
                         # trigger resize for plots after layout update
                         ui.run_javascript(f'Plotly.relayout("{plot1.id}", {{}});')
@@ -162,7 +178,6 @@ def show_results():
                         ui.run_javascript(f'Plotly.relayout("{plot3.id}", {{}});')
                         ui.run_javascript(f'Plotly.relayout("{plot4.id}", {{}});')
                         ui.run_javascript('window.dispatchEvent(new Event("resize"));')
-
 
                     # attach the toggle change event to the layout update function
                     toggle1.on_value_change(update_layout)
