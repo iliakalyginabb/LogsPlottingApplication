@@ -17,7 +17,6 @@ def handle_upload(event):
     # redirect to results page
     ui.run_javascript('window.location.href = "/results";')
 
-
 def show_results():
     global df_global
 
@@ -44,35 +43,75 @@ def show_results():
                 fig2.data[i].visible = checkbox.value
             plot2.update()
 
-        # create Plot 1 settings dialog
+        # update plot visibility for the second plot
+        def update_visibility_third_plot():
+            for i, checkbox in enumerate(checkboxes_second_plot):
+                fig3.data[i].visible = checkbox.value
+            plot3.update()
+        
+        # update plot visibility for the second plot
+        def update_visibility_fourth_plot():
+            for i, checkbox in enumerate(checkboxes_second_plot):
+                fig4.data[i].visible = checkbox.value
+            plot4.update()
+
+        # create Plot 1 signals dialog
         def open_plot1_settings():
             global checkboxes_first_plot
             checkboxes_first_plot = []
-            with ui.dialog() as plot1_settings_dialog:
+            with ui.dialog() as plot1_signals_dialog:
                 with ui.card():
-                    ui.label("Plot 1 Settings")
+                    ui.label("Plot 1 signals")
                     for col in y_columns:
                         checkbox = ui.checkbox(f'{col}', value=True, on_change=update_visibility_first_plot)
                         checkboxes_first_plot.append(checkbox)
-                    ui.button('Close', on_click=plot1_settings_dialog.close)
-            plot1_settings_dialog.open()
+                    ui.button('Close', on_click=plot1_signals_dialog.close)
+            plot1_signals_dialog.open()
 
-        # create Plot 2 settings dialog
+        # create Plot 2 signals dialog
         def open_plot2_settings():
             global checkboxes_second_plot
             checkboxes_second_plot = []
-            with ui.dialog() as plot2_settings_dialog:
+            with ui.dialog() as plot2_signals_dialog:
                 with ui.card():
-                    ui.label("Plot 2 Settings")
+                    ui.label("Plot 2 signals")
                     for col in y_columns:
                         checkbox = ui.checkbox(f'{col}', value=True, on_change=update_visibility_second_plot)
                         checkboxes_second_plot.append(checkbox)
-                    ui.button('Close', on_click=plot2_settings_dialog.close)
-            plot2_settings_dialog.open()
+                    ui.button('Close', on_click=plot2_signals_dialog.close)
+            plot2_signals_dialog.open()
+        
+        # create Plot 3 settings dialog
+        def open_plot3_settings():
+            global checkboxes_second_plot
+            checkboxes_second_plot = []
+            with ui.dialog() as plot3_signals_dialog:
+                with ui.card():
+                    ui.label("Plot 3 signals")
+                    for col in y_columns:
+                        checkbox = ui.checkbox(f'{col}', value=True, on_change=update_visibility_third_plot)
+                        checkboxes_second_plot.append(checkbox)
+                    ui.button('Close', on_click=plot3_signals_dialog.close)
+            plot3_signals_dialog.open()
+        
+        # create Plot 2 settings dialog
+        def open_plot4_settings():
+            global checkboxes_second_plot
+            checkboxes_second_plot = []
+            with ui.dialog() as plot4_signals_dialog:
+                with ui.card():
+                    ui.label("Plot 4 signals")
+                    for col in y_columns:
+                        checkbox = ui.checkbox(f'{col}', value=True, on_change=update_visibility_fourth_plot)
+                        checkboxes_second_plot.append(checkbox)
+                    ui.button('Close', on_click=plot4_signals_dialog.close)
+            plot4_signals_dialog.open()
 
         # Add buttons to open dialogs for plot settings
         ui.button('Plot 1 settings', on_click=open_plot1_settings).classes('w-full')
         ui.button('Plot 2 settings', on_click=open_plot2_settings).classes('w-full')
+        ui.button('Plot 3 settings', on_click=open_plot3_settings).classes('w-full')
+        ui.button('Plot 4 settings', on_click=open_plot4_settings).classes('w-full')
 
         # upload csv button
         ui.button('Upload CSV').on('click', lambda: ui.run_javascript('window.location.href = "/";')).classes('mx-auto')
@@ -92,20 +131,68 @@ def show_results():
         with ui.tab_panels(tabs, value=line_chart).classes('w-full'):
             with ui.tab_panel(line_chart):
                 with ui.row().classes('w-full justify-around'):
-                    # create first plotly graph from global dataframe
+                    
+                    # function to update the layout dynamically
+                    def update_layout():
+                        layout = toggle1.value
+                        if layout == "1x1":
+                            plot1.style('display: block; width: 85vw; height: 80vh;').classes('mx-auto')
+                            plot2.style('display: none;')
+                            plot3.style('display: none;')
+                            plot4.style('display: none;')
+                        elif layout == "1x2":
+                            plot1.style('display: block; width: 40vw; height: 80vh;').classes('mx-auto')
+                            plot2.style('display: block; width: 40vw; height: 80vh;').classes('mx-auto')
+                            plot3.style('display: none;')
+                            plot4.style('display: none;')
+                        elif layout == "2x1":
+                            plot1.style('display: block; width: 85vw; height: 40vh;').classes('mx-auto')
+                            plot2.style('display: block; width: 85vw; height: 40vh;').classes('mx-auto')
+                            plot3.style('display: none;')
+                            plot4.style('display: none;')
+                        elif layout == "2x2":
+                            plot1.style('display: block; width: 42vw; height: 40vh;').classes('mx-auto')
+                            plot2.style('display: block; width: 42vw; height: 40vh;').classes('mx-auto')
+                            plot3.style('display: block; width: 42vw; height: 40vh;').classes('mx-auto')
+                            plot4.style('display: block; width: 42vw; height: 40vh;').classes('mx-auto')
+
+                        # trigger resize for plots after layout update
+                        ui.run_javascript(f'Plotly.relayout("{plot1.id}", {{}});')
+                        ui.run_javascript(f'Plotly.relayout("{plot2.id}", {{}});')
+                        ui.run_javascript(f'Plotly.relayout("{plot3.id}", {{}});')
+                        ui.run_javascript(f'Plotly.relayout("{plot4.id}", {{}});')
+                        ui.run_javascript('window.dispatchEvent(new Event("resize"));')
+
+
+                    # attach the toggle change event to the layout update function
+                    toggle1.on_value_change(update_layout)
+
+                    # create plotly graphs from global dataframe
                     fig1 = px.line(df_global, x='Time', y=y_columns,
-                                labels={'value': 'Values', 'variable': 'Variables'},
-                                title='Plot 1')
-                    plot1 = ui.plotly(fig1).classes('mx-auto').style('width: 42vw; height: 80vh;')
+                                   labels={'value': 'Values', 'variable': 'Variables'},
+                                   title='Plot 1')
+                    plot1 = ui.plotly(fig1).classes('mx-auto').style('display: none;')
 
-                    # create second plotly graph from global dataframe
                     fig2 = px.line(df_global, x='Time', y=y_columns,
-                                labels={'value': 'Values', 'variable': 'Variables'},
-                                title='Plot 2')
-                    plot2 = ui.plotly(fig2).classes('mx-auto').style('width: 42vw; height: 80vh;')
+                                   labels={'value': 'Values', 'variable': 'Variables'},
+                                   title='Plot 2')
+                    plot2 = ui.plotly(fig2).classes('mx-auto').style('display: none;')
 
+                    fig3 = px.line(df_global, x='Time', y=y_columns,
+                                   labels={'value': 'Values', 'variable': 'Variables'},
+                                   title='Plot 3')
+                    plot3 = ui.plotly(fig3).classes('mx-auto').style('display: none;')
+
+                    fig4 = px.line(df_global, x='Time', y=y_columns,
+                                   labels={'value': 'Values', 'variable': 'Variables'},
+                                   title='Plot 4')
+                    plot4 = ui.plotly(fig4).classes('mx-auto').style('display: none;')
+
+                    # initialize layout on load
+                    update_layout()
+
+            # create table from global dataframe
             with ui.tab_panel(table_view):
-                # create table from global dataframe
                 df_table = df_global.drop(columns=['Unnamed: 6'], errors='ignore')
                 ui.table(columns=[{'name': col, 'label': col, 'field': col, 'sortable':True} for col in df_table.columns], rows=df_table.to_dict(orient='records')).classes('mx-auto')
 
