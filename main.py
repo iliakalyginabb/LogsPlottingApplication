@@ -3,9 +3,10 @@ import pandas as pd
 import plotly.express as px
 from io import StringIO
 
-# initialize global dataframe to store uploaded data
-df_global = pd.DataFrame()
+df_global = pd.DataFrame() # dataframe to store uploaded data
+plot_settings = {} # stores plot visibility settings for each plot
 
+# functio to handle csv upload
 def handle_upload(event):
     global df_global
     content = event.content.read().decode('utf-8')
@@ -17,6 +18,40 @@ def handle_upload(event):
     # redirect to results page
     ui.run_javascript('window.location.href = "/results";')
 
+# function to update plot visibility
+def update_visibility(checkboxes, fig, plot, plot_id):
+    global plot_settings
+    settings = [checkbox.value for checkbox in checkboxes]
+    
+    # save settings for the specific plot
+    plot_settings[plot_id] = settings
+
+    for i, checkbox in enumerate(checkboxes):
+        fig.data[i].visible = checkbox.value
+    plot.update()
+
+# function to create settings dialog for each plot
+def open_plot_settings(y_columns, fig, plot, title, plot_id):
+    global plot_settings
+    checkboxes = []
+
+    # retrieve saved settings or default to True for each checkbox
+    saved_settings = plot_settings.get(plot_id, [True] * len(y_columns))
+
+    with ui.dialog() as signals_dialog:
+        with ui.card():
+            ui.label(f"{title} signals")
+            for i, col in enumerate(y_columns):
+                checkbox = ui.checkbox(
+                    f'{col}', 
+                    value=saved_settings[i],  # use saved value if available
+                    on_change=lambda: update_visibility(checkboxes, fig, plot, plot_id)
+                )
+                checkboxes.append(checkbox)
+            ui.button('Close', on_click=signals_dialog.close)
+    signals_dialog.open()
+
+# show results function
 def show_results():
     global df_global
 
@@ -31,81 +66,18 @@ def show_results():
     with ui.left_drawer(fixed=False).style('background-color: #ebf1fa').props('bordered') as left_drawer:
         ui.label('Signals')
 
-        # update plot visibility for the first plot
-        def update_visibility_first_plot():
-            for i, checkbox in enumerate(checkboxes_first_plot):
-                fig1.data[i].visible = checkbox.value
-            plot1.update()
-
-        # update plot visibility for the second plot
-        def update_visibility_second_plot():
-            for i, checkbox in enumerate(checkboxes_second_plot):
-                fig2.data[i].visible = checkbox.value
-            plot2.update()
-
-        # update plot visibility for the third plot
-        def update_visibility_third_plot():
-            for i, checkbox in enumerate(checkboxes_third_plot):
-                fig3.data[i].visible = checkbox.value
-            plot3.update()
-        
-        # update plot visibility for the fourth plot
-        def update_visibility_fourth_plot():
-            for i, checkbox in enumerate(checkboxes_fourth_plot):
-                fig4.data[i].visible = checkbox.value
-            plot4.update()
-
-        # create Plot 1 signals dialog
+        # create plot settings dialog
         def open_plot1_settings():
-            global checkboxes_first_plot
-            checkboxes_first_plot = []
-            with ui.dialog() as plot1_signals_dialog:
-                with ui.card():
-                    ui.label("Plot 1 signals")
-                    for col in y_columns:
-                        checkbox = ui.checkbox(f'{col}', value=True, on_change=update_visibility_first_plot)
-                        checkboxes_first_plot.append(checkbox)
-                    ui.button('Close', on_click=plot1_signals_dialog.close)
-            plot1_signals_dialog.open()
+            open_plot_settings(y_columns, fig1, plot1, 'Plot 1', 'plot1')
 
-        # create Plot 2 signals dialog
         def open_plot2_settings():
-            global checkboxes_second_plot
-            checkboxes_second_plot = []
-            with ui.dialog() as plot2_signals_dialog:
-                with ui.card():
-                    ui.label("Plot 2 signals")
-                    for col in y_columns:
-                        checkbox = ui.checkbox(f'{col}', value=True, on_change=update_visibility_second_plot)
-                        checkboxes_second_plot.append(checkbox)
-                    ui.button('Close', on_click=plot2_signals_dialog.close)
-            plot2_signals_dialog.open()
-        
-        # create Plot 3 settings dialog
+            open_plot_settings(y_columns, fig2, plot2, 'Plot 2', 'plot2')
+
         def open_plot3_settings():
-            global checkboxes_third_plot
-            checkboxes_third_plot = []
-            with ui.dialog() as plot3_signals_dialog:
-                with ui.card():
-                    ui.label("Plot 3 signals")
-                    for col in y_columns:
-                        checkbox = ui.checkbox(f'{col}', value=True, on_change=update_visibility_third_plot)
-                        checkboxes_third_plot.append(checkbox)
-                    ui.button('Close', on_click=plot3_signals_dialog.close)
-            plot3_signals_dialog.open()
-        
-        # create Plot 4 settings dialog
+            open_plot_settings(y_columns, fig3, plot3, 'Plot 3', 'plot3')
+
         def open_plot4_settings():
-            global checkboxes_fourth_plot
-            checkboxes_fourth_plot = []
-            with ui.dialog() as plot4_signals_dialog:
-                with ui.card():
-                    ui.label("Plot 4 signals")
-                    for col in y_columns:
-                        checkbox = ui.checkbox(f'{col}', value=True, on_change=update_visibility_fourth_plot)
-                        checkboxes_fourth_plot.append(checkbox)
-                    ui.button('Close', on_click=plot4_signals_dialog.close)
-            plot4_signals_dialog.open()
+            open_plot_settings(y_columns, fig4, plot4, 'Plot 4', 'plot4')
 
         # Add buttons to open dialogs for plot settings
         button_plot1 = ui.button('Plot 1 settings', on_click=open_plot1_settings).classes('w-full')
