@@ -3,10 +3,10 @@ import pandas as pd
 import plotly.express as px
 from io import StringIO
 
-df_global = pd.DataFrame() # dataframe to store uploaded data
-plot_settings = {} # stores plot visibility settings for each plot
+df_global = pd.DataFrame()  # dataframe to store uploaded data
+plot_settings = {}  # stores plot visibility settings for each plot
 
-# functio to handle csv upload
+# function to handle CSV upload
 def handle_upload(event):
     global df_global
     content = event.content.read().decode('utf-8')
@@ -18,11 +18,21 @@ def handle_upload(event):
     # redirect to results page
     ui.run_javascript('window.location.href = "/results";')
 
+# function to remove margins from plots
+def remove_margins_from_plots(fig):
+    # Update layout to remove margins and padding around the plot
+    fig.update_layout(
+        margin=dict(l=0, r=0, t=0, b=0),  # No margins
+        paper_bgcolor='rgba(0,0,0,0)',    # Transparent background
+        plot_bgcolor='rgba(0,0,0,0)'      # Transparent plot area
+    )
+    return fig
+
 # function to update plot visibility
 def update_visibility(checkboxes, fig, plot, plot_id):
     global plot_settings
     settings = [checkbox.value for checkbox in checkboxes]
-    
+
     # save settings for the specific plot
     plot_settings[plot_id] = settings
 
@@ -40,23 +50,16 @@ def open_plot_settings(y_columns, fig, plot, title, plot_id):
 
     # Adjust saved_settings if the number of columns has changed
     if len(saved_settings) < len(y_columns):
-        # Add True for new columns
         saved_settings.extend([True] * (len(y_columns) - len(saved_settings)))
     elif len(saved_settings) > len(y_columns):
-        # Trim saved settings if fewer columns are present in the new CSV
         saved_settings = saved_settings[:len(y_columns)]
 
-    # save the adjusted settings back into plot_settings
     plot_settings[plot_id] = saved_settings
 
     # dialog with checkboxes and buttons
     with ui.dialog() as signals_dialog:
         with ui.card().style('max-width: 80vh; max-height: 60vh; display: flex; flex-direction: column;'):
-            
-            # Title
             ui.label(f"{title} signals")
-
-            # Scrollable content with vertical layout
             with ui.element('div').style('flex: 1; overflow-y: auto;'):
                 with ui.column():
                     for i, col in enumerate(y_columns):
@@ -67,39 +70,33 @@ def open_plot_settings(y_columns, fig, plot, title, plot_id):
                         )
                         checkboxes.append(checkbox)
 
-            # Buttons (fixed at the bottom)
             with ui.row().style('flex-shrink: 0;'):
                 ui.button('Hide All', on_click=lambda: set_all_checkboxes(checkboxes, fig, plot, plot_id, False))
                 ui.button('Show All', on_click=lambda: set_all_checkboxes(checkboxes, fig, plot, plot_id, True))
     
     signals_dialog.open()
 
-# function to set all checkboxes to the same value (either hide all or show all)
+# function to set all checkboxes to the same value
 def set_all_checkboxes(checkboxes, fig, plot, plot_id, value):
     global plot_settings
     for checkbox in checkboxes:
-        checkbox.value = value 
+        checkbox.value = value
 
     plot_settings[plot_id] = [value] * len(checkboxes)
-
     update_visibility(checkboxes, fig, plot, plot_id)
 
 # show results function
 def show_results():
     global df_global
 
-    # define y columns (excluding 'Time' and all 'Unnamed')
     y_columns = [col for col in df_global.columns if 'Unnamed' not in col and col != 'Time']
 
-    # navbar
     with ui.header(elevated=True).style('background-color: #3874c8').classes('items-center justify-between'):
         ui.button(on_click=lambda: left_drawer.toggle(), icon='menu').props('flat color=white')
 
-    # sidebar
     with ui.left_drawer(fixed=False).style('background-color: #ebf1fa').props('bordered') as left_drawer:
         ui.label('Signals')
 
-        # create plot settings dialog
         def open_plot1_settings():
             open_plot_settings(y_columns, fig1, plot1, 'Plot 1', 'plot1')
 
@@ -112,32 +109,24 @@ def show_results():
         def open_plot4_settings():
             open_plot_settings(y_columns, fig4, plot4, 'Plot 4', 'plot4')
 
-        # Add buttons to open dialogs for plot settings
         button_plot1 = ui.button('Plot 1 settings', on_click=open_plot1_settings).classes('w-full')
         button_plot2 = ui.button('Plot 2 settings', on_click=open_plot2_settings).classes('w-full')
         button_plot3 = ui.button('Plot 3 settings', on_click=open_plot3_settings).classes('w-full')
         button_plot4 = ui.button('Plot 4 settings', on_click=open_plot4_settings).classes('w-full')
 
-        # upload csv button
         ui.button('Upload CSV').on('click', lambda: ui.run_javascript('window.location.href = "/";')).classes('mx-auto')
 
-    # main content
     with ui.row().classes('mx-auto'):
 
-        # layout toggle
         toggle1 = ui.toggle(["1x1", "1x2", "2x1", "2x2"], value="1x1").classes('mx-auto')
 
-        # tabs
         with ui.tabs().classes('w-full') as tabs:
             line_chart = ui.tab('Line Chart View')
             table_view = ui.tab('Table View')
 
-        # tab panels
         with ui.tab_panels(tabs, value=line_chart).classes('w-full'):
             with ui.tab_panel(line_chart):
                 with ui.row().classes('w-full justify-around'):
-                    
-                    # function to update the layout dynamically
                     def update_layout():
                         layout = toggle1.value
                         if layout == "1x1":
@@ -177,41 +166,28 @@ def show_results():
                             button_plot3.style('display: block;')
                             button_plot4.style('display: block;')
 
-                        # trigger resize for plots after layout update
                         ui.run_javascript(f'Plotly.relayout("{plot1.id}", {{}});')
                         ui.run_javascript(f'Plotly.relayout("{plot2.id}", {{}});')
                         ui.run_javascript(f'Plotly.relayout("{plot3.id}", {{}});')
                         ui.run_javascript(f'Plotly.relayout("{plot4.id}", {{}});')
                         ui.run_javascript('window.dispatchEvent(new Event("resize"));')
 
-                    # attach the toggle change event to the layout update function
                     toggle1.on_value_change(update_layout)
 
-                    # create plotly graphs from global dataframe
-                    fig1 = px.line(df_global, x='Time', y=y_columns,
-                                   labels={'value': 'Values', 'variable': 'Variables'},
-                                   title='Plot 1')
+                    fig1 = remove_margins_from_plots(px.line(df_global, x='Time', y=y_columns, title='Plot 1'))
                     plot1 = ui.plotly(fig1).classes('mx-auto').style('display: none;')
 
-                    fig2 = px.line(df_global, x='Time', y=y_columns,
-                                   labels={'value': 'Values', 'variable': 'Variables'},
-                                   title='Plot 2')
+                    fig2 = remove_margins_from_plots(px.line(df_global, x='Time', y=y_columns, title='Plot 2'))
                     plot2 = ui.plotly(fig2).classes('mx-auto').style('display: none;')
 
-                    fig3 = px.line(df_global, x='Time', y=y_columns,
-                                   labels={'value': 'Values', 'variable': 'Variables'},
-                                   title='Plot 3')
+                    fig3 = remove_margins_from_plots(px.line(df_global, x='Time', y=y_columns, title='Plot 3'))
                     plot3 = ui.plotly(fig3).classes('mx-auto').style('display: none;')
 
-                    fig4 = px.line(df_global, x='Time', y=y_columns,
-                                   labels={'value': 'Values', 'variable': 'Variables'},
-                                   title='Plot 4')
+                    fig4 = remove_margins_from_plots(px.line(df_global, x='Time', y=y_columns, title='Plot 4'))
                     plot4 = ui.plotly(fig4).classes('mx-auto').style('display: none;')
 
-                    # initialize layout on load
                     update_layout()
 
-            # create table from global dataframe
             with ui.tab_panel(table_view):
                 df_table = df_global.drop(columns=['Unnamed: 6'], errors='ignore')
                 ui.table(
@@ -222,10 +198,9 @@ def show_results():
 # create main (upload) page
 @ui.page('/')
 def main_page():
-    global upload_component
     ui.markdown('## Upload CSV file').classes('mx-auto')
     with ui.card().classes("mx-auto").style('background: transparent; border: none; box-shadow: none;'):
-        upload_component = ui.upload(on_upload=handle_upload).props('accept=".csv"').classes('max-w-full')
+        ui.upload(on_upload=handle_upload).props('accept=".csv"').classes('max-w-full')
 
 # create results route
 @ui.page('/results')
