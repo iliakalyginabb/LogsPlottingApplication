@@ -51,23 +51,29 @@ def open_plot_settings(y_columns, fig, plot, title, plot_id):
 
     # dialog with checkboxes and buttons
     with ui.dialog() as signals_dialog:
-        with ui.card():
+        with ui.card().style('max-width: 80vh; max-height: 60vh; display: flex; flex-direction: column;'):
+            
+            # Title
             ui.label(f"{title} signals")
-            for i, col in enumerate(y_columns):
-                checkbox = ui.checkbox(
-                    f'{col}', 
-                    value=saved_settings[i],  # use saved value if available
-                    on_change=lambda: update_visibility(checkboxes, fig, plot, plot_id)
-                )
-                checkboxes.append(checkbox)
 
-            # 'Hide All' and 'Show All' buttons
-            with ui.row():
+            # Scrollable content with vertical layout
+            with ui.element('div').style('flex: 1; overflow-y: auto;'):
+                with ui.column():
+                    for i, col in enumerate(y_columns):
+                        checkbox = ui.checkbox(
+                            f'{col}', 
+                            value=saved_settings[i],  # use saved value if available
+                            on_change=lambda: update_visibility(checkboxes, fig, plot, plot_id)
+                        )
+                        checkboxes.append(checkbox)
+
+            # Buttons (fixed at the bottom)
+            with ui.row().style('flex-shrink: 0;'):
                 ui.button('Hide All', on_click=lambda: set_all_checkboxes(checkboxes, fig, plot, plot_id, False))
                 ui.button('Show All', on_click=lambda: set_all_checkboxes(checkboxes, fig, plot, plot_id, True))
-
-            ui.button('Close', on_click=signals_dialog.close)
+    
     signals_dialog.open()
+
 
 
 # function to set all checkboxes to the same value (either hide all or show all)
@@ -210,7 +216,14 @@ def show_results():
             # create table from global dataframe
             with ui.tab_panel(table_view):
                 df_table = df_global.drop(columns=['Unnamed: 6'], errors='ignore')
-                ui.table(columns=[{'name': col, 'label': col, 'field': col, 'sortable':True} for col in df_table.columns], rows=df_table.to_dict(orient='records')).classes('mx-auto')
+                
+                # Create a scrollable container for the table
+                with ui.element('div').style('max-width: 85vw; max-height: 80vh; overflow: auto;').classes('mx-auto'):
+                    ui.table(
+                        columns=[{'name': col, 'label': col, 'field': col, 'sortable':True} for col in df_table.columns], 
+                        rows=df_table.to_dict(orient='records')
+                    ).classes('mx-auto')
+
 
 # create main (upload) page
 @ui.page('/')
