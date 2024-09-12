@@ -74,8 +74,6 @@ def open_plot_settings(y_columns, fig, plot, title, plot_id):
     
     signals_dialog.open()
 
-
-
 # function to set all checkboxes to the same value (either hide all or show all)
 def set_all_checkboxes(checkboxes, fig, plot, plot_id, value):
     global plot_settings
