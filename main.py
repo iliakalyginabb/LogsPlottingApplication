@@ -35,21 +35,34 @@ def open_plot_settings(y_columns, fig, plot, title, plot_id):
     global plot_settings
     checkboxes = []
 
-    # retrieve saved settings or default to True for each checkbox
+    # Retrieve saved settings, default to True for new columns without overriding existing ones
     saved_settings = plot_settings.get(plot_id, [True] * len(y_columns))
 
+    # Adjust saved_settings if the number of columns has changed
+    if len(saved_settings) < len(y_columns):
+        # Add True for new columns
+        saved_settings.extend([True] * (len(y_columns) - len(saved_settings)))
+    elif len(saved_settings) > len(y_columns):
+        # Trim saved settings if fewer columns are present in the new CSV
+        saved_settings = saved_settings[:len(y_columns)]
+
+    # Save the adjusted settings back into plot_settings
+    plot_settings[plot_id] = saved_settings
+
+    # Create the dialog with checkboxes
     with ui.dialog() as signals_dialog:
         with ui.card():
             ui.label(f"{title} signals")
             for i, col in enumerate(y_columns):
                 checkbox = ui.checkbox(
                     f'{col}', 
-                    value=saved_settings[i],  # use saved value if available
+                    value=saved_settings[i],  # Use saved value if available
                     on_change=lambda: update_visibility(checkboxes, fig, plot, plot_id)
                 )
                 checkboxes.append(checkbox)
             ui.button('Close', on_click=signals_dialog.close)
     signals_dialog.open()
+
 
 # show results function
 def show_results():
