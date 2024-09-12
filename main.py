@@ -216,14 +216,10 @@ def show_results():
             # create table from global dataframe
             with ui.tab_panel(table_view):
                 df_table = df_global.drop(columns=['Unnamed: 6'], errors='ignore')
-                
-                # Create a scrollable container for the table
-                with ui.element('div').style('max-width: 85vw; max-height: 80vh; overflow: auto;').classes('mx-auto'):
-                    ui.table(
-                        columns=[{'name': col, 'label': col, 'field': col, 'sortable':True} for col in df_table.columns], 
-                        rows=df_table.to_dict(orient='records')
-                    ).classes('mx-auto')
-
+                ui.table(
+                    columns=[{'name': col, 'label': col, 'field': col, 'sortable':True} for col in df_table.columns], 
+                    rows=df_table.to_dict(orient='records')
+                ).style('max-width: 85vw; max-height: 80vh; overflow: auto;').classes('mx-auto')
 
 # create main (upload) page
 @ui.page('/')
