@@ -46,23 +46,39 @@ def open_plot_settings(y_columns, fig, plot, title, plot_id):
         # Trim saved settings if fewer columns are present in the new CSV
         saved_settings = saved_settings[:len(y_columns)]
 
-    # Save the adjusted settings back into plot_settings
+    # save the adjusted settings back into plot_settings
     plot_settings[plot_id] = saved_settings
 
-    # Create the dialog with checkboxes
+    # dialog with checkboxes and buttons
     with ui.dialog() as signals_dialog:
         with ui.card():
             ui.label(f"{title} signals")
             for i, col in enumerate(y_columns):
                 checkbox = ui.checkbox(
                     f'{col}', 
-                    value=saved_settings[i],  # Use saved value if available
+                    value=saved_settings[i],  # use saved value if available
                     on_change=lambda: update_visibility(checkboxes, fig, plot, plot_id)
                 )
                 checkboxes.append(checkbox)
+
+            # 'Hide All' and 'Show All' buttons
+            with ui.row():
+                ui.button('Hide All', on_click=lambda: set_all_checkboxes(checkboxes, fig, plot, plot_id, False))
+                ui.button('Show All', on_click=lambda: set_all_checkboxes(checkboxes, fig, plot, plot_id, True))
+
             ui.button('Close', on_click=signals_dialog.close)
     signals_dialog.open()
 
+
+# function to set all checkboxes to the same value (either hide all or show all)
+def set_all_checkboxes(checkboxes, fig, plot, plot_id, value):
+    global plot_settings
+    for checkbox in checkboxes:
+        checkbox.value = value 
+
+    plot_settings[plot_id] = [value] * len(checkboxes)
+
+    update_visibility(checkboxes, fig, plot, plot_id)
 
 # show results function
 def show_results():
