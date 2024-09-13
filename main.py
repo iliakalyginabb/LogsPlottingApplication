@@ -71,20 +71,32 @@ def update_visibility():
                 plots[plot_id].update()
 
 # function to handle zoom events and synchronize x-axis
-def on_zoom(event):
-    relayout_data = event.args # axes values
+def on_zoom(plot_index, event):
+    relayout_data = event.args  # axes values
+    triggering_checkbox = checkboxes[plot_index].value  # Check if the triggering plot has sync enabled
+
+    # Only sync if the triggering plot's checkbox is enabled
+    if not triggering_checkbox:
+        return  # Ignore zoom events for plots without sync enabled
+
     if 'xaxis.range[0]' in relayout_data and 'xaxis.range[1]' in relayout_data:
         x_start = relayout_data['xaxis.range[0]']
         x_end = relayout_data['xaxis.range[1]']
+
+        # Synchronize only those plots where the sync checkbox is checked
         for i, checkbox in enumerate(checkboxes):
-            if checkbox.value != False:
+            if checkbox.value and i != plot_index:  # Sync only the checked plots, excluding the triggering one
                 figs[i].update_xaxes(range=[x_start, x_end])
                 plots[i].update()
     elif 'xaxis.autorange' in relayout_data:
+        # Reset the x-axis range for synced plots
         for i, checkbox in enumerate(checkboxes):
-            if checkbox.value != False:
+            if checkbox.value and i != plot_index:  # Sync only the checked plots, excluding the triggering one
                 figs[i].update_xaxes(range=None)
                 plots[i].update()
+
+
+
 
 def show_results():
     global df_global, plot1, plot2, plot3, plot4, checkboxes, figs, plots
@@ -137,16 +149,16 @@ def show_results():
                     toggle1.on_value_change(update_layout)
 
                     fig1 = remove_margins_from_plots(px.line(df_global, x='Time', y=y_columns, title='Plot 1'))
-                    plot1 = ui.plotly(fig1).on('plotly_relayout', on_zoom).classes('mx-auto').style('display: none;')
+                    plot1 = ui.plotly(fig1).on('plotly_relayout', lambda event: on_zoom(0, event)).classes('mx-auto').style('display: none;')
 
                     fig2 = remove_margins_from_plots(px.line(df_global, x='Time', y=y_columns, title='Plot 2'))
-                    plot2 = ui.plotly(fig2).on('plotly_relayout', on_zoom).classes('mx-auto').style('display: none;')
+                    plot2 = ui.plotly(fig2).on('plotly_relayout', lambda event: on_zoom(1, event)).classes('mx-auto').style('display: none;')
 
                     fig3 = remove_margins_from_plots(px.line(df_global, x='Time', y=y_columns, title='Plot 3'))
-                    plot3 = ui.plotly(fig3).on('plotly_relayout', on_zoom).classes('mx-auto').style('display: none;')
+                    plot3 = ui.plotly(fig3).on('plotly_relayout', lambda event: on_zoom(2, event)).classes('mx-auto').style('display: none;')
 
                     fig4 = remove_margins_from_plots(px.line(df_global, x='Time', y=y_columns, title='Plot 4'))
-                    plot4 = ui.plotly(fig4).on('plotly_relayout', on_zoom).classes('mx-auto').style('display: none;')
+                    plot4 = ui.plotly(fig4).on('plotly_relayout', lambda event: on_zoom(3, event)).classes('mx-auto').style('display: none;')   
 
                     figs = [fig1, fig2, fig3, fig4]
                     plots = [plot1, plot2, plot3, plot4]
