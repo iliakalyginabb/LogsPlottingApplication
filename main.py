@@ -5,15 +5,34 @@ from io import StringIO
 
 df_global = pd.DataFrame()  # dataframe to store uploaded data
 plot_settings = {}  # stores plot visibility settings for each plot
+df_signals = pd.DataFrame(columns=['csv_filename', 'signal_name', 'plot1', 'plot2', 'plot3', 'plot4', 'sync_x_axis'])  # dataframe to store signal settings
 
 # function to handle CSV upload
 def handle_upload(event):
-    global df_global
+    global df_global, df_signals
     content = event.content.read().decode('utf-8')
+    csv_filename = event.name  # get the filename of the uploaded CSV
     new_df = pd.read_csv(StringIO(content), delimiter=';')
 
     # merge new data with existing global dataframe
     df_global = pd.concat([df_global, new_df], ignore_index=True)
+
+    # Create a new dataframe with signal names, filename, and default settings
+    new_signals_df = pd.DataFrame({
+        'csv_filename': [csv_filename] * len(new_df.columns),  # repeat the filename for all columns
+        'signal_name': new_df.columns,  # the column names as signal names
+        'plot1': True,
+        'plot2': True,
+        'plot3': True,
+        'plot4': True,
+        'sync_x_axis': False
+    })
+
+    # Update the df_signals dataframe
+    df_signals = pd.concat([df_signals, new_signals_df], ignore_index=True)
+
+    # Remove rows where 'signal_name' contains 'Time' or 'Unnamed'
+    df_signals = df_signals[~df_signals['signal_name'].str.contains('Time|Unnamed', case=False, na=False)]
 
     # redirect to results page
     ui.run_javascript('window.location.href = "/results";')
@@ -122,7 +141,7 @@ def show_results():
 
         with ui.tabs().classes('w-full') as tabs:
             line_chart = ui.tab('Line Chart View')
-            table_view = ui.tab('Table View')
+            signals_table = ui.tab('Signals Table')
 
         with ui.tab_panels(tabs, value=line_chart).classes('w-full'):
             with ui.tab_panel(line_chart):
@@ -188,12 +207,30 @@ def show_results():
 
                     update_layout()
 
-            with ui.tab_panel(table_view):
-                df_table = df_global.drop(columns=['Unnamed: 6'], errors='ignore')
-                ui.table(
-                    columns=[{'name': col, 'label': col, 'field': col, 'sortable':True} for col in df_table.columns], 
-                    rows=df_table.to_dict(orient='records')
-                ).style('max-width: 85vw; max-height: 80vh; overflow: auto;').classes('mx-auto')
+            # ui.aggrid table with the uploaded data
+            with ui.tab_panel(signals_table):
+
+                # data from df_signals
+                data = df_signals.to_dict(orient='records')
+
+                # aggrid structure
+                column_defs = [
+                    {"headerName": "CSV File name", "field": "csv_filename"},
+                    {"headerName": "Signal Name", "field": "signal_name"},
+                    {"headerName": "Plot 1", "field": "plot1", "cellEditor": "agCheckboxCellEditor", "editable": True},
+                    {"headerName": "Plot 2", "field": "plot2", "cellEditor": "agCheckboxCellEditor", "editable": True},
+                    {"headerName": "Plot 3", "field": "plot3", "cellEditor": "agCheckboxCellEditor", "editable": True},
+                    {"headerName": "Plot 4", "field": "plot4", "cellEditor": "agCheckboxCellEditor", "editable": True},
+                    {"headerName": "Sync X-axis", "field": "sync_x_axis", "cellEditor": "agCheckboxCellEditor", "editable": True}]
+                
+                # create aggrid
+                grid = ui.aggrid({
+                    'defaultColDef': {'flex': 1},
+                    'columnDefs': column_defs,
+                    'rowData': data,
+                    'rowSelection': 'multiple',
+                }).style('width: 85vw; height: 80vh;').classes('mx-auto')
+
 
 # create main (upload) page
 @ui.page('/')
