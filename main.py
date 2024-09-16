@@ -73,7 +73,7 @@ def update_visibility():
 # function to handle zoom events and synchronize x-axis
 def on_zoom(plot_index, event):
     relayout_data = event.args  # axes values
-    triggering_checkbox = checkboxes[plot_index].value  # Check if the triggering plot has sync enabled
+    triggering_checkbox = sync_checkboxes[plot_index].value  # Check if the triggering plot has sync enabled
 
     # Only sync if the triggering plot's checkbox is enabled
     if not triggering_checkbox:
@@ -84,22 +84,33 @@ def on_zoom(plot_index, event):
         x_end = relayout_data['xaxis.range[1]']
 
         # Synchronize only those plots where the sync checkbox is checked
-        for i, checkbox in enumerate(checkboxes):
+        for i, checkbox in enumerate(sync_checkboxes):
             if checkbox.value and i != plot_index:  # Sync only the checked plots, excluding the triggering one
                 figs[i].update_xaxes(range=[x_start, x_end])
                 plots[i].update()
     elif 'xaxis.autorange' in relayout_data:
         # Reset the x-axis range for synced plots
-        for i, checkbox in enumerate(checkboxes):
+        for i, checkbox in enumerate(sync_checkboxes):
             if checkbox.value and i != plot_index:  # Sync only the checked plots, excluding the triggering one
                 figs[i].update_xaxes(range=None)
                 plots[i].update()
 
 
+# function to set all values in a column to true or false
+def set_entire_plot_column(column_name, value):
+    global df_signals, grid
 
+    # set all values in the specified column to the given value
+    df_signals[column_name] = value
 
+    # rerender the grid with updated data
+    grid.options['rowData'] = df_signals.to_dict(orient='records')
+    grid.update() # update the grid to reflect the changes
+    update_visibility() # update plot visibility based on new settings
+
+# load the results page
 def show_results():
-    global df_global, plot1, plot2, plot3, plot4, checkboxes, figs, plots
+    global df_global, plot1, plot2, plot3, plot4, sync_checkboxes, figs, plots, grid, data
 
     y_columns = [col for col in df_global.columns if 'Unnamed' not in col and col != 'Time']
 
@@ -172,11 +183,20 @@ def show_results():
                 data = df_signals.to_dict(orient='records')
 
                 # create checkboxes for sync
-                checkboxes = []
+                sync_checkboxes = []
                 with ui.row().classes('mx-auto'):
                     for i in range(4):
                         checkbox = ui.checkbox(f'Sync Plot {i+1}', value=False)
-                        checkboxes.append(checkbox)
+                        sync_checkboxes.append(checkbox)
+
+                # Add buttons to set plot column values
+                with ui.row().classes('mx-auto'):
+                    # Create a checkbox to control the entire plot1 column
+                    ui.checkbox('Set all Plot 1', value=True).on_value_change(lambda e: set_entire_plot_column('plot1', e.value))
+                    ui.checkbox('Set all Plot 2', value=True).on_value_change(lambda e: set_entire_plot_column('plot2', e.value))
+                    ui.checkbox('Set all Plot 3', value=True).on_value_change(lambda e: set_entire_plot_column('plot3', e.value))
+                    ui.checkbox('Set all Plot 4', value=True).on_value_change(lambda e: set_entire_plot_column('plot4', e.value))
+
 
                 # aggrid structure
                 column_defs = [
@@ -188,7 +208,7 @@ def show_results():
                     {"headerName": "Plot 4", "field": "plot4", "cellEditor": "agCheckboxCellEditor", "editable": True},
                 ]
                 
-                # create aggrid
+                # create aggrid grid
                 grid = ui.aggrid({
                     'defaultColDef': {'flex': 1},
                     'columnDefs': column_defs,
@@ -215,11 +235,7 @@ def show_results():
                         df_signals.loc[mask, 'plot3'] = data['plot3']
                         df_signals.loc[mask, 'plot4'] = data['plot4']
 
-                    # Update plot visibility based on new settings
-                    update_visibility()
-
-                    # Print updated df_signals to verify changes
-                    print(df_signals)
+                    update_visibility() # update plot visibility based on new settings
 
                 # event listener for ui.aggrid (checkboxes) value changes
                 grid.on('cellValueChanged', on_grid_value_change)
