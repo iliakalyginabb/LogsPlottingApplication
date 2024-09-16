@@ -26,11 +26,25 @@ def handle_upload(event):
         'plot4': True,
     })
 
-    # Update the df_signals dataframe
-    df_signals = pd.concat([df_signals, new_signals_df], ignore_index=True)
-
     # Remove rows where 'signal_name' contains 'Time' or 'Unnamed'
-    df_signals = df_signals[~df_signals['signal_name'].str.contains('Time|Unnamed', case=False, na=False)]
+    new_signals_df = new_signals_df[~new_signals_df['signal_name'].str.contains('Time|Unnamed', case=False, na=False)]
+
+    # create the "Toggle All" row
+    toggle_all_row = pd.DataFrame([{
+        "csv_filename": " ",
+        "signal_name": "Toggle All",
+        "plot1": True,
+        "plot2": True,
+        "plot3": True,
+        "plot4": True,
+    }])
+
+    # Add the "Toggle All" row to the top of the dataframe if not already added
+    if not df_signals[df_signals['signal_name'] == 'Toggle All'].empty:
+        df_signals = df_signals[df_signals['signal_name'] != 'Toggle All']
+
+    # Concatenate the toggle row and new signals to the df_signals dataframe
+    df_signals = pd.concat([toggle_all_row, df_signals, new_signals_df], ignore_index=True)
 
     # redirect to results page
     ui.run_javascript('window.location.href = "/results";')
@@ -94,8 +108,7 @@ def on_zoom(plot_index, event):
             if checkbox.value and i != plot_index:  # Sync only the checked plots, excluding the triggering one
                 figs[i].update_xaxes(range=None)
                 plots[i].update()
-
-
+       
 # function to set all values in a column to true or false
 def set_entire_plot_column(column_name, value):
     global df_signals, grid
@@ -159,6 +172,7 @@ def show_results():
 
                     toggle1.on_value_change(update_layout)
 
+                    # create plots
                     fig1 = remove_margins_from_plots(px.line(df_global, x='Time', y=y_columns, title='Plot 1'))
                     plot1 = ui.plotly(fig1).on('plotly_relayout', lambda event: on_zoom(0, event)).classes('mx-auto').style('display: none;')
 
@@ -174,7 +188,7 @@ def show_results():
                     figs = [fig1, fig2, fig3, fig4]
                     plots = [plot1, plot2, plot3, plot4]
 
-                    # Update plot visibility based on settings  
+                    # Update plot visibility based on settings 
                     update_visibility()
 
             # ui.aggrid table with the uploaded data
@@ -226,16 +240,39 @@ def show_results():
                     # Find the row in df_signals to update
                     csv_filename = data['csv_filename']
                     signal_name = data['signal_name']
-                    
-                    # Update the relevant row in df_signals
-                    mask = (df_signals['csv_filename'] == csv_filename) & (df_signals['signal_name'] == signal_name)
-                    if not df_signals[mask].empty:
-                        df_signals.loc[mask, 'plot1'] = data['plot1']
-                        df_signals.loc[mask, 'plot2'] = data['plot2']
-                        df_signals.loc[mask, 'plot3'] = data['plot3']
-                        df_signals.loc[mask, 'plot4'] = data['plot4']
 
-                    update_visibility() # update plot visibility based on new settings
+
+                    # Check if the event was triggered by the "Toggle All" row
+                    if event.args['data']['signal_name'] == 'Toggle All':
+                        if event.args['data']['plot1']:
+                            set_entire_plot_column('plot1', True)
+                        else:
+                            set_entire_plot_column('plot1', False)
+                        
+                        if event.args['data']['plot2']:
+                            set_entire_plot_column('plot2', True)
+                        else:
+                            set_entire_plot_column('plot2', False)
+                        
+                        if event.args['data']['plot3']:
+                            set_entire_plot_column('plot3', True)
+                        else:
+                            set_entire_plot_column('plot3', False)
+                        
+                        if event.args['data']['plot4']:
+                            set_entire_plot_column('plot4', True)
+                        else:
+                            set_entire_plot_column('plot4', False)
+                    else:             
+                        # Update the relevant row in df_signals
+                        mask = (df_signals['csv_filename'] == csv_filename) & (df_signals['signal_name'] == signal_name)
+                        if not df_signals[mask].empty:
+                            df_signals.loc[mask, 'plot1'] = data['plot1']
+                            df_signals.loc[mask, 'plot2'] = data['plot2']
+                            df_signals.loc[mask, 'plot3'] = data['plot3']
+                            df_signals.loc[mask, 'plot4'] = data['plot4']
+
+                        update_visibility() # update plot visibility based on new settings
 
                 # event listener for ui.aggrid (checkboxes) value changes
                 grid.on('cellValueChanged', on_grid_value_change)
