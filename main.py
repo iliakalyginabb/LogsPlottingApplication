@@ -6,12 +6,20 @@ import asyncio
 
 df_global = pd.DataFrame()  # dataframe to store uploaded data
 df_signals = pd.DataFrame(columns=['csv_filename', 'signal_name', 'plot1', 'plot2', 'plot3', 'plot4'])  # dataframe to store signal settings
+processed_filenames = set()  # set to keep track of processed filenames
 
 # function to handle CSV upload
 def handle_upload(event):
-    global df_global, df_signals
-    content = event.content.read().decode('utf-8')
+    global df_global, df_signals, processed_filenames
+
     csv_filename = event.name  # get the filename of the uploaded CSV
+
+    # check if the file has already been uploaded
+    if csv_filename in processed_filenames:
+        ui.notify(f'The file "{csv_filename}" has already been uploaded.', type='warning')
+        return
+
+    content = event.content.read().decode('utf-8')
     new_df = pd.read_csv(StringIO(content), delimiter=';')
 
     # merge new data with existing global dataframe
@@ -26,7 +34,7 @@ def handle_upload(event):
         'plot3': True,
         'plot4': True,
     })
-    
+
     # Remove rows where 'signal_name' contains 'Time' or 'Unnamed'
     new_signals_df = new_signals_df[~new_signals_df['signal_name'].str.contains('Time|Unnamed', case=False, na=False)]
 
@@ -46,6 +54,9 @@ def handle_upload(event):
 
     # Concatenate the toggle row and new signals to the df_signals dataframe
     df_signals = pd.concat([toggle_all_row, df_signals, new_signals_df], ignore_index=True)
+
+    # add filename to the processed set
+    processed_filenames.add(csv_filename)
 
     # redirect to results page
     ui.run_javascript('window.location.href = "/results";')
