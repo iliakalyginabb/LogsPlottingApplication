@@ -2,6 +2,7 @@ from nicegui import ui
 import pandas as pd
 import plotly.express as px
 from io import StringIO
+import asyncio
 
 df_global = pd.DataFrame()  # dataframe to store uploaded data
 df_signals = pd.DataFrame(columns=['csv_filename', 'signal_name', 'plot1', 'plot2', 'plot3', 'plot4'])  # dataframe to store signal settings
@@ -25,7 +26,7 @@ def handle_upload(event):
         'plot3': True,
         'plot4': True,
     })
-
+    
     # Remove rows where 'signal_name' contains 'Time' or 'Unnamed'
     new_signals_df = new_signals_df[~new_signals_df['signal_name'].str.contains('Time|Unnamed', case=False, na=False)]
 
@@ -48,6 +49,55 @@ def handle_upload(event):
 
     # redirect to results page
     ui.run_javascript('window.location.href = "/results";')
+
+# function to batch update trace visibility for all plots
+async def batch_update_visibility():
+    global df_signals
+    plots = {'plot1': plot1, 'plot2': plot2, 'plot3': plot3, 'plot4': plot4}
+
+    for _, row in df_signals.iterrows():
+        signal_name = row['signal_name']
+        visible_plots = {
+            'plot1': row['plot1'],
+            'plot2': row['plot2'],
+            'plot3': row['plot3'],
+            'plot4': row['plot4']
+        }
+
+        # Iterate over all plots to update visibility
+        for plot_id, is_visible in visible_plots.items():
+            if plot_id in plots:
+                fig = plots[plot_id].figure
+                fig.update_traces(selector=dict(name=signal_name), visible=is_visible)
+                plots[plot_id].update()
+
+# debounced function to reduce multiple updates
+debounce_time = 0.3  # in seconds
+debounce_task = None
+
+async def debounced_update():
+    global debounce_task
+
+    if debounce_task:
+        debounce_task.cancel()  # Cancel the previous task if still running
+    debounce_task = asyncio.create_task(asyncio.sleep(debounce_time))
+
+    try:
+        await debounce_task  # Wait for the debounce period
+        await batch_update_visibility()  # Call batch update after debouncing
+    except asyncio.CancelledError:
+        pass  # Handle the case where the task is canceled
+
+# function to update the entire column and batch the grid/visibility update
+def set_entire_plot_column(column_name, value):
+    global df_signals, grid
+
+    df_signals[column_name] = value
+    grid.options['rowData'] = df_signals.to_dict(orient='records')
+    grid.update()
+
+    # Trigger the debounced update
+    asyncio.create_task(debounced_update())
 
 # function to remove margins from plots
 def remove_margins_from_plots(fig):
@@ -119,7 +169,37 @@ def set_entire_plot_column(column_name, value):
     # rerender the grid with updated data
     grid.options['rowData'] = df_signals.to_dict(orient='records')
     grid.update() # update the grid to reflect the changes
-    update_visibility() # update plot visibility based on new settings
+
+    # Trigger the debounced update
+    asyncio.create_task(debounced_update())
+
+
+# function to handle grid value changes
+def on_grid_value_change(event):
+    global df_signals
+
+    # extract data from the event
+    data = event.args['data']
+
+    # Find the row in df_signals to update
+    csv_filename = data['csv_filename']
+    signal_name = data['signal_name']
+
+    if signal_name == 'Toggle All':
+        plots = ['plot1', 'plot2', 'plot3', 'plot4']
+        for plot in plots:
+            set_entire_plot_column(plot, data[plot])
+    else:
+        # Update the relevant row in df_signals
+        mask = (df_signals['csv_filename'] == csv_filename) & (df_signals['signal_name'] == signal_name)
+        if not df_signals[mask].empty:
+            df_signals.loc[mask, 'plot1'] = data['plot1']
+            df_signals.loc[mask, 'plot2'] = data['plot2']
+            df_signals.loc[mask, 'plot3'] = data['plot3']
+            df_signals.loc[mask, 'plot4'] = data['plot4']
+
+        # Trigger the debounced update
+        asyncio.create_task(debounced_update())
 
 # load the results page
 def show_results():
@@ -203,15 +283,6 @@ def show_results():
                         checkbox = ui.checkbox(f'Sync Plot {i+1}', value=False)
                         sync_checkboxes.append(checkbox)
 
-                # Add buttons to set plot column values
-                with ui.row().classes('mx-auto'):
-                    # Create a checkbox to control the entire plot1 column
-                    ui.checkbox('Set all Plot 1', value=True).on_value_change(lambda e: set_entire_plot_column('plot1', e.value))
-                    ui.checkbox('Set all Plot 2', value=True).on_value_change(lambda e: set_entire_plot_column('plot2', e.value))
-                    ui.checkbox('Set all Plot 3', value=True).on_value_change(lambda e: set_entire_plot_column('plot3', e.value))
-                    ui.checkbox('Set all Plot 4', value=True).on_value_change(lambda e: set_entire_plot_column('plot4', e.value))
-
-
                 # aggrid structure
                 column_defs = [
                     {"headerName": "CSV File name", "field": "csv_filename"},
@@ -230,50 +301,6 @@ def show_results():
                     'rowSelection': 'multiple',
                 }).style('width: 85vw; height: 80vh;').classes('mx-auto')
 
-                # event handler for grid value change
-                def on_grid_value_change(event):
-                    global df_signals
-
-                    # extract data from the event
-                    data = event.args['data']
-                    
-                    # Find the row in df_signals to update
-                    csv_filename = data['csv_filename']
-                    signal_name = data['signal_name']
-
-
-                    # Check if the event was triggered by the "Toggle All" row
-                    if event.args['data']['signal_name'] == 'Toggle All':
-                        if event.args['data']['plot1']:
-                            set_entire_plot_column('plot1', True)
-                        else:
-                            set_entire_plot_column('plot1', False)
-                        
-                        if event.args['data']['plot2']:
-                            set_entire_plot_column('plot2', True)
-                        else:
-                            set_entire_plot_column('plot2', False)
-                        
-                        if event.args['data']['plot3']:
-                            set_entire_plot_column('plot3', True)
-                        else:
-                            set_entire_plot_column('plot3', False)
-                        
-                        if event.args['data']['plot4']:
-                            set_entire_plot_column('plot4', True)
-                        else:
-                            set_entire_plot_column('plot4', False)
-                    else:             
-                        # Update the relevant row in df_signals
-                        mask = (df_signals['csv_filename'] == csv_filename) & (df_signals['signal_name'] == signal_name)
-                        if not df_signals[mask].empty:
-                            df_signals.loc[mask, 'plot1'] = data['plot1']
-                            df_signals.loc[mask, 'plot2'] = data['plot2']
-                            df_signals.loc[mask, 'plot3'] = data['plot3']
-                            df_signals.loc[mask, 'plot4'] = data['plot4']
-
-                        update_visibility() # update plot visibility based on new settings
-
                 # event listener for ui.aggrid (checkboxes) value changes
                 grid.on('cellValueChanged', on_grid_value_change)
 
@@ -282,7 +309,7 @@ def show_results():
 # create main (upload) page
 @ui.page('/')
 def main_page():
-    ui.markdown('## Upload CSV file').classes('mx-auto')
+    ui.markdown('### Upload CSV file').classes('mx-auto')
     with ui.card().classes("mx-auto").style('background: transparent; border: none; box-shadow: none;'):
         ui.upload(on_upload=handle_upload).props('accept=".csv"').classes('max-w-full')
 
