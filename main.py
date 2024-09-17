@@ -207,9 +207,14 @@ def show_results():
 
     y_columns = [col for col in df_global.columns if 'Unnamed' not in col and col != 'Time']
 
+    with ui.dialog() as upload_dialog, ui.card():
+        with ui.card().classes("mx-auto").style('background: transparent; border: none; box-shadow: none;'):
+            ui.upload(on_upload=handle_upload).props('accept=".csv"').classes('max-w-full')
+            ui.button('Close', on_click=upload_dialog.close)
+
     # navbar
     with ui.header(elevated=True).style('background-color: #3874c8').classes('items-center justify-between'):
-        ui.button('Upload CSV', icon='file_present').on('click', lambda: ui.run_javascript('window.location.href = "/";'))
+        ui.button('Upload CSV', icon='file_present').on('click', upload_dialog.open)
 
     # main content
     with ui.row().classes('mx-auto'):
