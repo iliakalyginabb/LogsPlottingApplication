@@ -1,7 +1,12 @@
-from nicegui import ui
+from nicegui import app, ui
 import pandas as pd
 import plotly.express as px
 from io import StringIO
+
+# set native app settings
+app.native.window_args['resizable'] = True
+app.native.start_args['debug'] = False # open with debug window
+app.native.settings['ALLOW_DOWNLOADS'] = True
 
 df_global = pd.DataFrame()  # dataframe to store uploaded data
 df_signals = pd.DataFrame(columns=['csv_filename', 'signal_name', 'plot1', 'plot2', 'plot3', 'plot4'])  # dataframe to store signal settings
@@ -12,12 +17,6 @@ def handle_upload(event):
     global df_global, df_signals, processed_filenames, grid
 
     csv_filename = event.name  # get the filename of the uploaded CSV
-
-    # check if the file has already been uploaded
-    if csv_filename in processed_filenames:
-        ui.notify(f'The file "{csv_filename}" has already been uploaded.', type='warning')
-        return
-
     content = event.content.read().decode('utf-8')
     new_df = pd.read_csv(StringIO(content), delimiter=';')
 
@@ -289,4 +288,5 @@ def main_page():
 def results_page():
     show_results()
 
-ui.run()
+# run in native mode
+ui.run(title="PlottingApplication", native=True, fullscreen=False, window_size=(2500, 1300))
