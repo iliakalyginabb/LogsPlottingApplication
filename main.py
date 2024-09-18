@@ -9,7 +9,7 @@ processed_filenames = set()  # set to keep track of processed filenames
 
 # function to handle CSV upload
 def handle_upload(event):
-    global df_global, df_signals, processed_filenames
+    global df_global, df_signals, processed_filenames, grid
 
     csv_filename = event.name  # get the filename of the uploaded CSV
 
@@ -43,8 +43,26 @@ def handle_upload(event):
     # add filename to the processed set
     processed_filenames.add(csv_filename)
 
+    # update the aggrid columnDefs with the new total count
+    column_defs = [
+        {"headerName": f"CSV File name | Total files: {len(processed_filenames)}", "field": "csv_filename"},
+        {"headerName": "Signal Name", "field": "signal_name"},
+        {"headerName": "Plot 1", "field": "plot1", "cellEditor": "agCheckboxCellEditor", "editable": True},
+        {"headerName": "Plot 2", "field": "plot2", "cellEditor": "agCheckboxCellEditor", "editable": True},
+        {"headerName": "Plot 3", "field": "plot3", "cellEditor": "agCheckboxCellEditor", "editable": True},
+        {"headerName": "Plot 4", "field": "plot4", "cellEditor": "agCheckboxCellEditor", "editable": True},
+    ]
+    # try updating the grid's columnDefs and rowData with the new data
+    try:
+        grid.options['columnDefs'] = column_defs
+        grid.options['rowData'] = df_signals.to_dict(orient='records')
+        grid.update()  # asynchronously update the grid to reflect the changes
+    except:
+        pass
+
     # redirect to results page
     ui.run_javascript('window.location.href = "/results";')
+
 
 # function to remove margins from plots
 def remove_margins_from_plots(fig):
@@ -107,19 +125,21 @@ def on_zoom(plot_index, event):
                 plots[i].update()
        
 # function to set all values in a column to true or false
-def set_entire_plot_column(column_name, value):
+async def set_entire_plot_column(column_name, value):
     global df_signals, grid
-
     # set all values in the specified column to the given value
     df_signals[column_name] = value
 
     # rerender the grid with updated data
     grid.options['rowData'] = df_signals.to_dict(orient='records')
-    grid.update() # update the grid to reflect the changes
-    update_visibility() # update plot visibility based on new settings
+    grid.update()  # asynchronously update the grid to reflect the changes
+    update_visibility()  # update plot visibility based on new settings
+
+async def handle_plot_checkbox_change(plot, e):
+    await set_entire_plot_column(plot, e.value)
 
 
-# load the results page
+# load the main content
 def show_results():
     global df_global, plot1, plot2, plot3, plot4, sync_checkboxes, figs, plots, grid, data
 
@@ -208,14 +228,14 @@ def show_results():
 
                 # add checkboxes to set plot column values
                 with ui.row().classes('mx-auto'):
-                    ui.checkbox('Set all Plot 1', value=True).on_value_change(lambda e: set_entire_plot_column('plot1', e.value))
-                    ui.checkbox('Set all Plot 2', value=True).on_value_change(lambda e: set_entire_plot_column('plot2', e.value))
-                    ui.checkbox('Set all Plot 3', value=True).on_value_change(lambda e: set_entire_plot_column('plot3', e.value))
-                    ui.checkbox('Set all Plot 4', value=True).on_value_change(lambda e: set_entire_plot_column('plot4', e.value))
+                    ui.checkbox('Set all Plot 1', value=True).on_value_change(lambda e: handle_plot_checkbox_change('plot1', e))
+                    ui.checkbox('Set all Plot 2', value=True).on_value_change(lambda e: handle_plot_checkbox_change('plot2', e))
+                    ui.checkbox('Set all Plot 3', value=True).on_value_change(lambda e: handle_plot_checkbox_change('plot3', e))
+                    ui.checkbox('Set all Plot 4', value=True).on_value_change(lambda e: handle_plot_checkbox_change('plot4', e))
 
                 # aggrid structure
                 column_defs = [
-                    {"headerName": "CSV File name", "field": "csv_filename"},
+                    {"headerName": f"CSV File name | Total files: {len(processed_filenames)}", "field": "csv_filename"},
                     {"headerName": "Signal Name", "field": "signal_name"},
                     {"headerName": "Plot 1", "field": "plot1", "cellEditor": "agCheckboxCellEditor", "editable": True},
                     {"headerName": "Plot 2", "field": "plot2", "cellEditor": "agCheckboxCellEditor", "editable": True},
@@ -229,8 +249,7 @@ def show_results():
                     'columnDefs': column_defs,
                     'rowData': data,
                     'rowSelection': 'multiple',
-                }).style('width: 85vw; height: 80vh;').classes('mx-auto')
-
+                }).style('width: 85vw; height: 77vh;').classes('mx-auto')
 
                 # event handler for grid value change
                 def on_grid_value_change(event):
