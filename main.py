@@ -63,12 +63,14 @@ def handle_upload(event):
     ui.run_javascript('window.location.href = "/results";')
 
 
-# function to remove margins from plots
-def remove_margins_from_plots(fig):
+# function to customize the plot
+def customize_plot(fig, line_width=1):
     # Update layout to remove margins and padding around the plot
     fig.update_layout(
         margin=dict(l=0, r=0, t=30, b=0)
     )
+    # Update traces to set the line thickness
+    fig.update_traces(line=dict(width=line_width))
     return fig
 
 # function to update trace visibility per plot based on the data from df_signals
@@ -223,18 +225,18 @@ def show_results():
 
                     toggle1.on_value_change(update_layout)
 
-                    # create plots
-                    fig1 = remove_margins_from_plots(px.line(df_global, x='Time', y=y_columns, title='Plot 1'))
+                    # create plots with custom settings
+                    fig1 = customize_plot(px.line(df_global, x='Time', y=y_columns, title='Plot 1'))
                     plot1 = ui.plotly(fig1).on('plotly_relayout', lambda event: on_zoom(0, event)).classes('mx-auto').style('display: none;')
 
-                    fig2 = remove_margins_from_plots(px.line(df_global, x='Time', y=y_columns, title='Plot 2'))
+                    fig2 = customize_plot(px.line(df_global, x='Time', y=y_columns, title='Plot 2'))
                     plot2 = ui.plotly(fig2).on('plotly_relayout', lambda event: on_zoom(1, event)).classes('mx-auto').style('display: none;')
 
-                    fig3 = remove_margins_from_plots(px.line(df_global, x='Time', y=y_columns, title='Plot 3'))
+                    fig3 = customize_plot(px.line(df_global, x='Time', y=y_columns, title='Plot 3'))
                     plot3 = ui.plotly(fig3).on('plotly_relayout', lambda event: on_zoom(2, event)).classes('mx-auto').style('display: none;')
 
-                    fig4 = remove_margins_from_plots(px.line(df_global, x='Time', y=y_columns, title='Plot 4'))
-                    plot4 = ui.plotly(fig4).on('plotly_relayout', lambda event: on_zoom(3, event)).classes('mx-auto').style('display: none;')   
+                    fig4 = customize_plot(px.line(df_global, x='Time', y=y_columns, title='Plot 4'))
+                    plot4 = ui.plotly(fig4).on('plotly_relayout', lambda event: on_zoom(3, event)).classes('mx-auto').style('display: none;')
 
                     figs = [fig1, fig2, fig3, fig4]
                     plots = [plot1, plot2, plot3, plot4]
