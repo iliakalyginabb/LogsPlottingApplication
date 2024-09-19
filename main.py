@@ -169,6 +169,11 @@ async def set_selected_rows_value(plot, value):
     # Update plot visibility based on new settings
     update_visibility()
 
+async def get_selected_rows():
+    rows = await grid.get_selected_rows()
+    print(rows)
+
+
 # load the main content
 def show_results():
     global df_global, plot1, plot2, plot3, plot4, sync_checkboxes, figs, plots, grid, data
@@ -182,8 +187,64 @@ def show_results():
 
     # navbar
     with ui.header(elevated=True).style('background-color: #3874c8').classes('items-center justify-between'):
+        ui.button(on_click=lambda: left_drawer.toggle(), icon='menu').props('flat color=white')
+
+    # settings sidebar
+    with ui.left_drawer(fixed=False).style('background-color: #ebf1fa').props('bordered') as left_drawer:
+        ui.label('Settings').style('font-size: 24px; font-weight: bold;')
+
+        ui.label('Upload CSV').style('font-size: 16px; font-weight: bold;')
         ui.button('Upload CSV', icon='file_present').on('click', upload_dialog.open)
 
+        # toggle to select layout
+        ui.label('Layout').style('font-size: 16px; font-weight: bold;')
+        toggle1 = ui.toggle(["1x1", "1x2", "2x1", "2x2"], value="1x1").classes('mx-auto')
+
+        ui.label('Sync Settings').style('font-size: 16px; font-weight: bold;')
+        # create checkboxes for sync settings
+        sync_checkboxes = []
+        with ui.column():
+            for i in range(4):
+                checkbox = ui.checkbox(f'Sync Plot {i+1}', value=False).style('height: 10px;')
+                sync_checkboxes.append(checkbox)
+
+        # add checkboxes to set plot column values
+        ui.label('Grid Settings').style('font-size: 16px; font-weight: bold;')
+        with ui.column():
+            for i, plot in enumerate(['plot1', 'plot2', 'plot3', 'plot4']):
+                ui.checkbox(f'Set all Plot {i+1}', value=True).on_value_change(lambda e, plot_num=i+1: set_entire_plot_column(f'plot{plot_num}', e.value)).style('height: 10px;')
+
+        
+        # buttons for selection
+        with ui.column():
+            ui.label('Selection Actions').style('font-size: 18px; font-weight: bold;')
+            ui.label('All Plots').style('font-size: 14px; font-weight: bold;')
+            with ui.row():
+                ui.button("Select", on_click=lambda: set_selected_rows_value('all', True))
+                ui.button("deselect", on_click=lambda: set_selected_rows_value('all', False))
+
+            ui.label('Plot 1').style('font-size: 14px; font-weight: bold;')
+            with ui.row():
+                ui.button("Select", on_click=lambda: set_selected_rows_value('plot1', True))
+                ui.button("deselect", on_click=lambda: set_selected_rows_value('plot1', False))
+            
+            ui.label('Plot 2').style('font-size: 14px; font-weight: bold;')
+            with ui.row():
+                ui.button("Select", on_click=lambda: set_selected_rows_value('plot2', True))
+                ui.button("Deselect", on_click=lambda: set_selected_rows_value('plot2', False))
+            
+            ui.label('Plot 3').style('font-size: 14px; font-weight: bold;')
+            with ui.row():
+                ui.button("Select", on_click=lambda: set_selected_rows_value('plot3', True))
+                ui.button("Deselect", on_click=lambda: set_selected_rows_value('plot3', False))
+            
+            ui.label('Plot 4').style('font-size: 14px; font-weight: bold;')
+            with ui.row():
+                ui.button("Select", on_click=lambda: set_selected_rows_value('plot4', True))
+                ui.button("Deselect", on_click=lambda: set_selected_rows_value('plot4', False))
+        
+
+                    
     # main content
     with ui.row().classes('mx-auto'):
         # initialize tab panels
@@ -194,8 +255,6 @@ def show_results():
         # create tab panels
         with ui.tab_panels(tabs, value=line_chart).classes('w-full'):
             with ui.tab_panel(line_chart):
-                # toggle to select layout
-                toggle1 = ui.toggle(["1x1", "1x2", "2x1", "2x2"], value="1x1").classes('mx-auto')
 
                 with ui.row().classes('w-full justify-around'):
                     def update_layout():
@@ -216,10 +275,10 @@ def show_results():
                             plot3.style('display: none;')
                             plot4.style('display: none;')
                         elif layout == "2x2":
-                            plot1.style('display: block; width: 45vw; height: 40vh;').classes('mx-auto')
-                            plot2.style('display: block; width: 45vw; height: 40vh;').classes('mx-auto')
-                            plot3.style('display: block; width: 45vw; height: 40vh;').classes('mx-auto')
-                            plot4.style('display: block; width: 45vw; height: 40vh;').classes('mx-auto')
+                            plot1.style('display: block; width: 43vw; height: 40vh;').classes('mx-auto')
+                            plot2.style('display: block; width: 43vw; height: 40vh;').classes('mx-auto')
+                            plot3.style('display: block; width: 43vw; height: 40vh;').classes('mx-auto')
+                            plot4.style('display: block; width: 43vw; height: 40vh;').classes('mx-auto')
 
                         ui.run_javascript('window.dispatchEvent(new Event("resize"));')
 
@@ -244,35 +303,10 @@ def show_results():
                     # Update plot visibility based on settings 
                     update_visibility()
 
-            # ui.aggrid table with the uploaded data
+            # signals table with ui.aggrid
             with ui.tab_panel(signals_table):
                 # data from df_signals
                 data = df_signals.to_dict(orient='records')
-
-                # create checkboxes for sync
-                sync_checkboxes = []
-                with ui.row().classes('mx-auto'):
-                    for i in range(4):
-                        checkbox = ui.checkbox(f'Sync Plot {i+1}', value=False)
-                        sync_checkboxes.append(checkbox)
-
-                # add checkboxes to set plot column values
-                with ui.row().classes('mx-auto', ):
-                    for i, plot in enumerate(['plot1', 'plot2', 'plot3', 'plot4']):
-                        ui.checkbox(f'Set all {plot}', value=True).on_value_change(lambda e, plot_num=i+1: set_entire_plot_column(f'plot{plot_num}', e.value))
-
-
-                # buttons for selection
-                with ui.row().classes('mx-auto'):
-                    ui.button('Select All', on_click=lambda e: set_selected_rows_value('all', True))
-                    for i, plot in enumerate(['Select Plot 1', 'Select Plot 2', 'Select Plot 3', 'Select Plot 4']):
-                        ui.button(plot, on_click=lambda e, plot_num=i+1: set_selected_rows_value(f'plot{plot_num}', True))
-
-                # buttons for deselection
-                with ui.row().classes('mx-auto'):
-                    ui.button("Deselect All", on_click=lambda e: set_selected_rows_value('all', False))
-                    for i, plot in enumerate(['Deselect Plot 1', 'Deselect Plot 2', 'Deselect Plot 3', 'Deselect Plot 4']):
-                        ui.button(plot, on_click=lambda e, plot_num=i+1: set_selected_rows_value(f'plot{plot_num}', False))
 
                 # aggrid structure
                 column_defs = [
