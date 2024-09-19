@@ -141,7 +141,7 @@ async def handle_plot_checkbox_change(plot, e):
     await set_entire_plot_column(plot, e.value)
 
 
-# set selecet rows to false in a specified plot
+# set select rows to false in a specified plot
 async def set_selected_rows_value(plot, value):
     global df_signals, grid
     # Get the selected rows from the grid
@@ -153,21 +153,21 @@ async def set_selected_rows_value(plot, value):
             mask = (df_signals['csv_filename'] == csv_filename) & (df_signals['signal_name'] == signal_name)
 
             if plot in ['plot1', 'plot2', 'plot3', 'plot4']:
-                # Update the corresponding value in df_signals to False for the selected plot
+                # update corresponding value in df_signals to provided value (true or false)
                 df_signals.loc[mask, plot] = value
             elif plot == 'all':
-                # Update the corresponding row in df_signals
+                # update the corresponding row in df_signals
                 if not df_signals[mask].empty:
                     df_signals.loc[mask, ['plot1', 'plot2', 'plot3', 'plot4']] = value
     else:
         ui.notify("No rows selected", type='warning')
 
-        # Rerender the grid with the updated data
-        grid.options['rowData'] = df_signals.to_dict(orient='records')
-        grid.update()
+    # Rerender the grid with the updated data
+    grid.options['rowData'] = df_signals.to_dict(orient='records')
+    grid.update()
 
-        # Update plot visibility based on new settings
-        update_visibility()
+    # Update plot visibility based on new settings
+    update_visibility()
 
 # load the main content
 def show_results():
