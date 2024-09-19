@@ -134,9 +134,38 @@ async def set_entire_plot_column(column_name, value):
     grid.update()  # asynchronously update the grid to reflect the changes
     update_visibility()  # update plot visibility based on new settings
 
+# function to handle plot checkbox changes
 async def handle_plot_checkbox_change(plot, e):
     await set_entire_plot_column(plot, e.value)
 
+
+# set selecet rows to false in a specified plot
+async def set_selected_rows_value(plot, value):
+    global df_signals, grid
+    # Get the selected rows from the grid
+    rows = await grid.get_selected_rows()
+    if rows:
+        for row in rows:
+            csv_filename = row['csv_filename']
+            signal_name = row['signal_name']
+            mask = (df_signals['csv_filename'] == csv_filename) & (df_signals['signal_name'] == signal_name)
+
+            if plot in ['plot1', 'plot2', 'plot3', 'plot4']:
+                # Update the corresponding value in df_signals to False for the selected plot
+                df_signals.loc[mask, plot] = value
+            elif plot == 'all':
+                # Update the corresponding row in df_signals
+                if not df_signals[mask].empty:
+                    df_signals.loc[mask, ['plot1', 'plot2', 'plot3', 'plot4']] = value
+    else:
+        ui.notify("No rows selected", type='warning')
+
+        # Rerender the grid with the updated data
+        grid.options['rowData'] = df_signals.to_dict(orient='records')
+        grid.update()
+
+        # Update plot visibility based on new settings
+        update_visibility()
 
 # load the main content
 def show_results():
@@ -226,11 +255,22 @@ def show_results():
                         sync_checkboxes.append(checkbox)
 
                 # add checkboxes to set plot column values
+                with ui.row().classes('mx-auto', ):
+                    for i, plot in enumerate(['plot1', 'plot2', 'plot3', 'plot4']):
+                        ui.checkbox(f'Set all {plot}', value=True).on_value_change(lambda e, plot_num=i+1: set_entire_plot_column(f'plot{plot_num}', e.value))
+
+
+                # buttons for selection
                 with ui.row().classes('mx-auto'):
-                    ui.checkbox('Set all Plot 1', value=True).on_value_change(lambda e: handle_plot_checkbox_change('plot1', e))
-                    ui.checkbox('Set all Plot 2', value=True).on_value_change(lambda e: handle_plot_checkbox_change('plot2', e))
-                    ui.checkbox('Set all Plot 3', value=True).on_value_change(lambda e: handle_plot_checkbox_change('plot3', e))
-                    ui.checkbox('Set all Plot 4', value=True).on_value_change(lambda e: handle_plot_checkbox_change('plot4', e))
+                    ui.button('Select All', on_click=lambda e: set_selected_rows_value('all', True))
+                    for i, plot in enumerate(['Select Plot 1', 'Select Plot 2', 'Select Plot 3', 'Select Plot 4']):
+                        ui.button(plot, on_click=lambda e, plot_num=i+1: set_selected_rows_value(f'plot{plot_num}', True))
+
+                # buttons for deselection
+                with ui.row().classes('mx-auto'):
+                    ui.button("Deselect All", on_click=lambda e: set_selected_rows_value('all', False))
+                    for i, plot in enumerate(['Deselect Plot 1', 'Deselect Plot 2', 'Deselect Plot 3', 'Deselect Plot 4']):
+                        ui.button(plot, on_click=lambda e, plot_num=i+1: set_selected_rows_value(f'plot{plot_num}', False))
 
                 # aggrid structure
                 column_defs = [
