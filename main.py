@@ -12,6 +12,8 @@ df_global = pd.DataFrame()  # dataframe to store uploaded data
 df_signals = pd.DataFrame(columns=['csv_filename', 'signal_name', 'plot1', 'plot2', 'plot3', 'plot4'])  # dataframe to store signal settings
 processed_filenames = set()  # set to keep track of processed filenames
 
+left_drawer_state =  True # left drawer state on app start
+
 # function to handle CSV upload
 def handle_upload(event):
     global df_global, df_signals, processed_filenames, grid
@@ -173,10 +175,9 @@ async def get_selected_rows():
     rows = await grid.get_selected_rows()
     print(rows)
 
-
 # load the main content
 def show_results():
-    global df_global, plot1, plot2, plot3, plot4, sync_checkboxes, figs, plots, grid, data
+    global df_global, plot1, plot2, plot3, plot4, sync_checkboxes, figs, plots, grid, data, line_width_slider
 
     y_columns = [col for col in df_global.columns if 'Unnamed' not in col and col != 'Time']
 
@@ -191,10 +192,15 @@ def show_results():
 
     # settings sidebar
     with ui.left_drawer(fixed=False).style('background-color: #ebf1fa').props('bordered') as left_drawer:
-        ui.label('Settings').style('font-size: 24px; font-weight: bold;')
 
+        ui.label('Settings').style('font-size: 22px; font-weight: bold;')
+        ui.separator()
+
+        # button to upload CSV
         ui.label('Upload CSV').style('font-size: 16px; font-weight: bold;')
-        ui.button('Upload CSV', icon='file_present').on('click', upload_dialog.open)
+        ui.button('Upload CSV', icon='file_present').on('click', upload_dialog.open).classes('mx-auto')
+
+        ui.separator()
 
         # toggle to select layout
         ui.label('Layout').style('font-size: 16px; font-weight: bold;')
@@ -208,13 +214,16 @@ def show_results():
                 checkbox = ui.checkbox(f'Sync Plot {i+1}', value=False).style('height: 10px;')
                 sync_checkboxes.append(checkbox)
 
+        ui.separator()
+
         # add checkboxes to set plot column values
         ui.label('Grid Settings').style('font-size: 16px; font-weight: bold;')
         with ui.column():
             for i, plot in enumerate(['plot1', 'plot2', 'plot3', 'plot4']):
                 ui.checkbox(f'Set all Plot {i+1}', value=True).on_value_change(lambda e, plot_num=i+1: set_entire_plot_column(f'plot{plot_num}', e.value)).style('height: 10px;')
 
-        
+        ui.separator()
+
         # buttons for selection
         with ui.column():
             ui.label('Selection Actions').style('font-size: 18px; font-weight: bold;')
@@ -258,30 +267,56 @@ def show_results():
 
                 with ui.row().classes('w-full justify-around'):
                     def update_layout():
+                        global left_drawer_state
                         layout = toggle1.value
+                        drawer_width = 300 if left_drawer_state else 0  # Width of the drawer in pixels, 0 if closed
+                        full_width = f'calc(95vw - {drawer_width}px)'
+                        half_width = f'calc(45vw - {drawer_width/2}px)'
+                        full_height = f'calc(95vh - 135px)' # approximately height of the navbar + tabsbar
+                        half_height = f'calc(45vh - 67px)'
+
                         if layout == "1x1":
-                            plot1.style('display: block; width: 95vw; height: 80vh;').classes('mx-auto')
+                            plot1.style(f'display: block; width: {full_width}; height: {full_height};').classes('mx-auto')
                             plot2.style('display: none;')
                             plot3.style('display: none;')
                             plot4.style('display: none;')
                         elif layout == "1x2":
-                            plot1.style('display: block; width: 45vw; height: 80vh;').classes('mx-auto')
-                            plot2.style('display: block; width: 45vw; height: 80vh;').classes('mx-auto')
+                            plot1.style(f'display: block; width: {half_width}; height: {full_height};').classes('mx-auto')
+                            plot2.style(f'display: block; width: {half_width}; height: {full_height};').classes('mx-auto')
                             plot3.style('display: none;')
                             plot4.style('display: none;')
                         elif layout == "2x1":
-                            plot1.style('display: block; width: 95vw; height: 40vh;').classes('mx-auto')
-                            plot2.style('display: block; width: 95vw; height: 40vh;').classes('mx-auto')
+                            plot1.style(f'display: block; width: {full_width}; height: {half_height};').classes('mx-auto')
+                            plot2.style(f'display: block; width: {full_width}; height: {half_height};').classes('mx-auto')
                             plot3.style('display: none;')
                             plot4.style('display: none;')
                         elif layout == "2x2":
-                            plot1.style('display: block; width: 43vw; height: 40vh;').classes('mx-auto')
-                            plot2.style('display: block; width: 43vw; height: 40vh;').classes('mx-auto')
-                            plot3.style('display: block; width: 43vw; height: 40vh;').classes('mx-auto')
-                            plot4.style('display: block; width: 43vw; height: 40vh;').classes('mx-auto')
+                            plot1.style(f'display: block; width: {half_width}; height: {half_height};').classes('mx-auto')
+                            plot2.style(f'display: block; width: {half_width}; height: {half_height};').classes('mx-auto')
+                            plot3.style(f'display: block; width: {half_width}; height: {half_height};').classes('mx-auto')
+                            plot4.style(f'display: block; width: {half_width}; height: {half_height};').classes('mx-auto')
 
                         ui.run_javascript('window.dispatchEvent(new Event("resize"));')
 
+                    # Update drawer state and layout when drawer is toggled
+                    def on_drawer_toggle(state):
+                        global left_drawer_state
+                        left_drawer_state = state
+                        update_layout()
+                        
+                        # calculate new grid width
+                        grid_width = f'calc(95vw - {300 if left_drawer_state else 0}px)'
+                        
+                        # update new grid width
+                        grid.style(f'width: {grid_width}; height: 85vh;')
+                        grid.update()
+
+                    # Connect drawer toggle event to our custom function
+                    left_drawer.on('show', lambda: on_drawer_toggle(True))
+                    left_drawer.on('hide', lambda: on_drawer_toggle(False))
+
+
+                    # Connect layout toggle to update function
                     toggle1.on_value_change(update_layout)
 
                     # create plots with custom settings
@@ -311,20 +346,21 @@ def show_results():
                 # aggrid structure
                 column_defs = [
                     {"headerName": f"CSV File name | Total files: {len(processed_filenames)}", "field": "csv_filename"},
-                    {"headerName": "Signal Name", "field": "signal_name"},
+                    {"headerName": "Signal Name", "field": "signal_name"}, 
                     {"headerName": "Plot 1", "field": "plot1", "cellEditor": "agCheckboxCellEditor", "editable": True},
                     {"headerName": "Plot 2", "field": "plot2", "cellEditor": "agCheckboxCellEditor", "editable": True},
                     {"headerName": "Plot 3", "field": "plot3", "cellEditor": "agCheckboxCellEditor", "editable": True},
                     {"headerName": "Plot 4", "field": "plot4", "cellEditor": "agCheckboxCellEditor", "editable": True},
                 ]
                 
+                grid_width = f'calc(95vw - {300 if left_drawer_state else 0}px)'
                 # create aggrid grid
                 grid = ui.aggrid({
                     'defaultColDef': {'flex': 1},
                     'columnDefs': column_defs,
                     'rowData': data,
                     'rowSelection': 'multiple',
-                }).style('width: 85vw; height: 77vh;').classes('mx-auto')
+                }).style(f'width: {grid_width}; height: 85vh;').classes('mx-auto')
 
                 # event handler for grid value change
                 def on_grid_value_change(event):
