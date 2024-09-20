@@ -72,7 +72,6 @@ def customize_plot(fig, line_width=1):
     )
     # Update traces to set the line thickness
     fig.update_traces(line=dict(width=line_width))
-    fig.update_layout(hovermode='x unified')
     return fig
 
 # function to update trace visibility per plot based on the data from df_signals
@@ -130,8 +129,14 @@ def on_zoom(plot_index, event):
 # function to set all values in a column to true or false
 async def set_entire_plot_column(column_name, value):
     global df_signals, grid
+
     # set all values in the specified column to the given value
-    df_signals[column_name] = value
+    if column_name == 'all':
+        for plot in ['plot1', 'plot2', 'plot3', 'plot4']:
+            df_signals[plot] = value
+    else:
+        # set all values in the specified column to the given value
+        df_signals[column_name] = value
 
     # rerender the grid with updated data
     grid.options['rowData'] = df_signals.to_dict(orient='records')
@@ -141,7 +146,6 @@ async def set_entire_plot_column(column_name, value):
 # function to handle plot checkbox changes
 async def handle_plot_checkbox_change(plot, e):
     await set_entire_plot_column(plot, e.value)
-
 
 # set select rows to false in a specified plot
 async def set_selected_rows_value(plot, value):
@@ -216,41 +220,56 @@ def show_results():
 
         ui.separator()
 
-        # add checkboxes to set plot column values
-        ui.label('Grid Settings').style('font-size: 16px; font-weight: bold;')
-        with ui.column():
-            for i, plot in enumerate(['plot1', 'plot2', 'plot3', 'plot4']):
-                ui.checkbox(f'Set all Plot {i+1}', value=True).on_value_change(lambda e, plot_num=i+1: set_entire_plot_column(f'plot{plot_num}', e.value)).style('height: 10px;')
-
-        ui.separator()
-
         # buttons for selection
         with ui.column():
             ui.label('Selection Actions').style('font-size: 18px; font-weight: bold;')
             ui.label('All Plots').style('font-size: 14px; font-weight: bold;')
-            with ui.row():
-                ui.button("Select", on_click=lambda: set_selected_rows_value('all', True))
-                ui.button("deselect", on_click=lambda: set_selected_rows_value('all', False))
+            with ui.column():
+                with ui.button_group():
+                    ui.button("Select Row", on_click=lambda: set_selected_rows_value('all', True))
+                    ui.button("Deselect Row", on_click=lambda: set_selected_rows_value('all', False))
+                with ui.button_group():
+                    ui.button("Select All", on_click=lambda: set_entire_plot_column('all', True))
+                    ui.button("Deselect All", on_click=lambda: set_entire_plot_column('all', False))
 
             ui.label('Plot 1').style('font-size: 14px; font-weight: bold;')
-            with ui.row():
-                ui.button("Select", on_click=lambda: set_selected_rows_value('plot1', True))
-                ui.button("deselect", on_click=lambda: set_selected_rows_value('plot1', False))
+            with ui.column():
+                with ui.button_group():
+                    ui.button("Select", on_click=lambda: set_selected_rows_value('plot1', True))
+                    ui.button("Deselect", on_click=lambda: set_selected_rows_value('plot1', False))
+                with ui.button_group():
+                    ui.button("Select All", on_click=lambda: set_entire_plot_column('plot1', True))
+                    ui.button("Deselect All", on_click=lambda: set_entire_plot_column('plot1', False))
             
             ui.label('Plot 2').style('font-size: 14px; font-weight: bold;')
-            with ui.row():
-                ui.button("Select", on_click=lambda: set_selected_rows_value('plot2', True))
-                ui.button("Deselect", on_click=lambda: set_selected_rows_value('plot2', False))
+            with ui.column():
+                with ui.button_group():
+                    ui.button("Select", on_click=lambda: set_selected_rows_value('plot2', True))
+                    ui.button("Deselect", on_click=lambda: set_selected_rows_value('plot2', False))
+                with ui.button_group():
+                    ui.button("Select All", on_click=lambda: set_entire_plot_column('plot2', True))
+                    ui.button("Deselect All", on_click=lambda: set_entire_plot_column('plot2', False))
             
             ui.label('Plot 3').style('font-size: 14px; font-weight: bold;')
-            with ui.row():
-                ui.button("Select", on_click=lambda: set_selected_rows_value('plot3', True))
-                ui.button("Deselect", on_click=lambda: set_selected_rows_value('plot3', False))
+            with ui.column():
+                with ui.button_group():
+                    ui.button("Select", on_click=lambda: set_selected_rows_value('plot3', True))
+                    ui.button("Deselect", on_click=lambda: set_selected_rows_value('plot3', False))
+                with ui.button_group():
+                    ui.button("Select All", on_click=lambda: set_entire_plot_column('plot3', True))
+                    ui.button("Deselect All", on_click=lambda: set_entire_plot_column('plot3', False))
             
             ui.label('Plot 4').style('font-size: 14px; font-weight: bold;')
-            with ui.row():
-                ui.button("Select", on_click=lambda: set_selected_rows_value('plot4', True))
-                ui.button("Deselect", on_click=lambda: set_selected_rows_value('plot4', False))
+            with ui.column():
+                with ui.button_group():
+                    ui.button("Select", on_click=lambda: set_selected_rows_value('plot4', True))
+                    ui.button("Deselect", on_click=lambda: set_selected_rows_value('plot4', False))
+                with ui.button_group():
+                    ui.button("Select All", on_click=lambda: set_entire_plot_column('plot4', True))
+                    ui.button("Deselect All", on_click=lambda: set_entire_plot_column('plot4', False))
+            
+            
+           
         
 
     # main content
