@@ -32,7 +32,7 @@ def handle_upload(event):
         'plot1': True,
         'plot2': True,
         'plot3': True,
-        'plot4': True,
+        'plot4': True, # die linie macht de plot 4 uf true, wenn de csv file hochglade wird
     })
 
     # Remove rows where 'signal_name' contains 'Time' or 'Unnamed'
@@ -64,7 +64,6 @@ def handle_upload(event):
     # redirect to results page
     ui.run_javascript('window.location.href = "/results";')
 
-
 # function to customize the plot
 def customize_plot(fig, line_width=1):
     # Update layout to remove margins and padding around the plot
@@ -73,6 +72,7 @@ def customize_plot(fig, line_width=1):
     )
     # Update traces to set the line thickness
     fig.update_traces(line=dict(width=line_width))
+    fig.update_layout(hovermode='x unified')
     return fig
 
 # function to update trace visibility per plot based on the data from df_signals
@@ -253,7 +253,6 @@ def show_results():
                 ui.button("Deselect", on_click=lambda: set_selected_rows_value('plot4', False))
         
 
-                    
     # main content
     with ui.row().classes('mx-auto'):
         # initialize tab panels
@@ -271,7 +270,7 @@ def show_results():
                         layout = toggle1.value
                         drawer_width = 300 if left_drawer_state else 0  # Width of the drawer in pixels, 0 if closed
                         full_width = f'calc(95vw - {drawer_width}px)'
-                        half_width = f'calc(45vw - {drawer_width/2}px)'
+                        half_width = f'calc(47vw - {drawer_width/2}px)'
                         full_height = f'calc(95vh - 135px)' # approximately height of the navbar + tabsbar
                         half_height = f'calc(45vh - 67px)'
 
