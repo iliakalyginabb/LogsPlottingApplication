@@ -338,16 +338,16 @@ def show_results():
                     toggle1.on_value_change(update_layout)
 
                     # create plots with custom settings
-                    fig1 = customize_plot(px.line(df_global, x='Time', y=y_columns, title='Plot 1'))
+                    fig1 = customize_plot(px.line(df_global, x='Time', y=y_columns, title='Plot 1', template="plotly_white"))
                     plot1 = ui.plotly(fig1).on('plotly_relayout', lambda event: on_zoom(0, event)).classes('mx-auto').style('display: none;')
 
-                    fig2 = customize_plot(px.line(df_global, x='Time', y=y_columns, title='Plot 2'))
+                    fig2 = customize_plot(px.line(df_global, x='Time', y=y_columns, title='Plot 2', template="plotly_white"))
                     plot2 = ui.plotly(fig2).on('plotly_relayout', lambda event: on_zoom(1, event)).classes('mx-auto').style('display: none;')
 
-                    fig3 = customize_plot(px.line(df_global, x='Time', y=y_columns, title='Plot 3'))
+                    fig3 = customize_plot(px.line(df_global, x='Time', y=y_columns, title='Plot 3', template="plotly_white"))
                     plot3 = ui.plotly(fig3).on('plotly_relayout', lambda event: on_zoom(2, event)).classes('mx-auto').style('display: none;')
 
-                    fig4 = customize_plot(px.line(df_global, x='Time', y=y_columns, title='Plot 4'))
+                    fig4 = customize_plot(px.line(df_global, x='Time', y=y_columns, title='Plot 4', template="plotly_white"))
                     plot4 = ui.plotly(fig4).on('plotly_relayout', lambda event: on_zoom(3, event)).classes('mx-auto').style('display: none;')
 
                     figs = [fig1, fig2, fig3, fig4]
