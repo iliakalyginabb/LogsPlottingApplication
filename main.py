@@ -268,10 +268,6 @@ def show_results():
                     ui.button("Select All", on_click=lambda: set_entire_plot_column('plot4', True))
                     ui.button("Deselect All", on_click=lambda: set_entire_plot_column('plot4', False))
             
-            
-           
-        
-
     # main content
     with ui.row().classes('mx-auto'):
         # initialize tab panels
@@ -358,6 +354,16 @@ def show_results():
 
             # signals table with ui.aggrid
             with ui.tab_panel(signals_table):
+
+                # context menu for the grid, to select/deselect signals on plots
+                with ui.context_menu():
+                    ui.menu_item('Select Row', on_click=lambda: set_selected_rows_value('all', True))
+                    ui.menu_item('Deselect Row', on_click=lambda: set_selected_rows_value('all', False))
+                    for plot in range(1, 5):
+                        ui.separator()
+                        ui.menu_item(f'Select Plot {plot}', on_click=lambda p=plot: set_selected_rows_value(f'plot{p}', True))
+                        ui.menu_item(f'Deselect Plot {plot}', on_click=lambda p=plot: set_selected_rows_value(f'plot{p}', False))
+                    
                 # data from df_signals
                 data = df_signals.to_dict(orient='records')
 
