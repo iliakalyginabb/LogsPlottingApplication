@@ -62,16 +62,26 @@ def handle_upload(event):
         pass
 
     # redirect to results page
-    ui.run_javascript('window.location.href = "/application";')
+    ui.run_javascript('window.location.href = "/";')
 
 # function to customize the plot
-def customize_plot(fig, line_width=1):
-    # Update layout to remove margins and padding around the plot
-    fig.update_layout(
-        margin=dict(l=0, r=0, t=30, b=0)
-    )
-    # Update traces to set the line thickness
-    fig.update_traces(line=dict(width=line_width))
+def customize_plot(fig=None, line_width=1):
+    # Check if a valid figure is provided, else return an empty plot
+    if fig is None:
+        fig = px.line()  # create an empty figure if no data is available
+        fig.update_layout(
+            xaxis={'visible': False}, 
+            yaxis={'visible': False},
+            annotations=[dict(text="No data available", xref="paper", yref="paper", showarrow=False, font=dict(size=20))]
+        )
+    else:
+        # Update layout to remove margins and padding around the plot
+        fig.update_layout(
+            margin=dict(l=0, r=0, t=30, b=0)
+        )
+        # Update traces to set the line thickness
+        fig.update_traces(line=dict(width=line_width))
+    
     return fig
 
 # function to update trace visibility per plot based on the data from df_signals
@@ -175,19 +185,21 @@ async def set_selected_rows_value(plot, value):
     # Update plot visibility based on new settings
     update_visibility()
 
+# get selected rows from aggrid
 async def get_selected_rows():
     rows = await grid.get_selected_rows()
     print(rows)
 
-# create application route
-@ui.page('/application')
+# create main page
+@ui.page('/')
 def application_page():
     # load the main content
 
-    global df_global, plot1, plot2, plot3, plot4, sync_checkboxes, figs, plots, grid, data, line_width_slider
+    global df_global, plot1, plot2, plot3, plot4, sync_checkboxes, figs, plots, grid, upload_message
 
     y_columns = [col for col in df_global.columns if 'Unnamed' not in col and col != 'Time']
 
+    # dialog to upload new csv
     with ui.dialog() as upload_dialog, ui.card():
         with ui.card().classes("mx-auto").style('background: transparent; border: none; box-shadow: none;'):
             ui.upload(on_upload=handle_upload).props('accept=".csv"').classes('max-w-full')
@@ -284,7 +296,8 @@ def application_page():
 
                 with ui.row().classes('w-full justify-around'):
                     def update_layout():
-                        global left_drawer_state
+                        global df_global, plot1, plot2, plot3, plot4, figs, plots, upload_message
+
                         layout = toggle1.value
                         drawer_width = 300 if left_drawer_state else 0  # Width of the drawer in pixels, 0 if closed
                         full_width = f'calc(95vw - {drawer_width}px)'
@@ -292,26 +305,39 @@ def application_page():
                         full_height = f'calc(95vh - 135px)' # approximately height of the navbar + tabsbar
                         half_height = f'calc(45vh - 67px)'
 
-                        if layout == "1x1":
-                            plot1.style(f'display: block; width: {full_width}; height: {full_height};').classes('mx-auto')
+                        if not df_global.empty:
+                            # Hide the upload message if data is available
+                            upload_message.style('display: none;')
+
+                            # If data is available, update the plots based on the selected layout
+                            if layout == "1x1":
+                                plot1.style(f'display: block; width: {full_width}; height: {full_height};').classes('mx-auto')
+                                plot2.style('display: none;')
+                                plot3.style('display: none;')
+                                plot4.style('display: none;')
+                            elif layout == "1x2":
+                                plot1.style(f'display: block; width: {half_width}; height: {full_height};').classes('mx-auto')
+                                plot2.style(f'display: block; width: {half_width}; height: {full_height};').classes('mx-auto')
+                                plot3.style('display: none;')
+                                plot4.style('display: none;')
+                            elif layout == "2x1":
+                                plot1.style(f'display: block; width: {full_width}; height: {half_height};').classes('mx-auto')
+                                plot2.style(f'display: block; width: {full_width}; height: {half_height};').classes('mx-auto')
+                                plot3.style('display: none;')
+                                plot4.style('display: none;')
+                            elif layout == "2x2":
+                                plot1.style(f'display: block; width: {half_width}; height: {half_height};').classes('mx-auto')
+                                plot2.style(f'display: block; width: {half_width}; height: {half_height};').classes('mx-auto')
+                                plot3.style(f'display: block; width: {half_width}; height: {half_height};').classes('mx-auto')
+                                plot4.style(f'display: block; width: {half_width}; height: {half_height};').classes('mx-auto')
+
+                        else:
+                            # If no data, show the upload message and hide all plots
+                            upload_message.style(f'display: flex; width: {full_width}; height: {full_height}; justify-content: center; align-items: center; font-size: 24px;')
+                            plot1.style('display: none;')
                             plot2.style('display: none;')
                             plot3.style('display: none;')
                             plot4.style('display: none;')
-                        elif layout == "1x2":
-                            plot1.style(f'display: block; width: {half_width}; height: {full_height};').classes('mx-auto')
-                            plot2.style(f'display: block; width: {half_width}; height: {full_height};').classes('mx-auto')
-                            plot3.style('display: none;')
-                            plot4.style('display: none;')
-                        elif layout == "2x1":
-                            plot1.style(f'display: block; width: {full_width}; height: {half_height};').classes('mx-auto')
-                            plot2.style(f'display: block; width: {full_width}; height: {half_height};').classes('mx-auto')
-                            plot3.style('display: none;')
-                            plot4.style('display: none;')
-                        elif layout == "2x2":
-                            plot1.style(f'display: block; width: {half_width}; height: {half_height};').classes('mx-auto')
-                            plot2.style(f'display: block; width: {half_width}; height: {half_height};').classes('mx-auto')
-                            plot3.style(f'display: block; width: {half_width}; height: {half_height};').classes('mx-auto')
-                            plot4.style(f'display: block; width: {half_width}; height: {half_height};').classes('mx-auto')
 
                         ui.run_javascript('window.dispatchEvent(new Event("resize"));')
 
@@ -336,22 +362,27 @@ def application_page():
                     # Connect layout toggle to update function
                     toggle1.on_value_change(update_layout)
 
-                    # create plots with custom settings
-                    fig1 = customize_plot(px.line(df_global, x='Time', y=y_columns, title='Plot 1', template="plotly_white"))
-                    plot1 = ui.plotly(fig1).on('plotly_relayout', lambda event: on_zoom(0, event)).classes('mx-auto').style('display: none;')
+                    with ui.row().classes('w-full justify-around'):
+                        # Placeholder for "Upload CSV" message
+                        upload_message = ui.label('Upload CSV').style('display: none;').classes('text-center text-xl')
 
-                    fig2 = customize_plot(px.line(df_global, x='Time', y=y_columns, title='Plot 2', template="plotly_white"))
-                    plot2 = ui.plotly(fig2).on('plotly_relayout', lambda event: on_zoom(1, event)).classes('mx-auto').style('display: none;')
+                        # create plots with custom settings
+                        if not df_global.empty:
+                            fig1 = customize_plot(px.line(df_global, x='Time', y=y_columns, title='Plot 1', template="plotly_white"))
+                            fig2 = customize_plot(px.line(df_global, x='Time', y=y_columns, title='Plot 2', template="plotly_white"))
+                            fig3 = customize_plot(px.line(df_global, x='Time', y=y_columns, title='Plot 3', template="plotly_white"))
+                            fig4 = customize_plot(px.line(df_global, x='Time', y=y_columns, title='Plot 4', template="plotly_white"))
+                        else:
+                            # No data uploaded, create empty plots
+                            fig1, fig2, fig3, fig4 = customize_plot(), customize_plot(), customize_plot(), customize_plot()
 
-                    fig3 = customize_plot(px.line(df_global, x='Time', y=y_columns, title='Plot 3', template="plotly_white"))
-                    plot3 = ui.plotly(fig3).on('plotly_relayout', lambda event: on_zoom(2, event)).classes('mx-auto').style('display: none;')
+                        plot1 = ui.plotly(fig1).on('plotly_relayout', lambda event: on_zoom(0, event)).classes('mx-auto').style('display: none;')
+                        plot2 = ui.plotly(fig2).on('plotly_relayout', lambda event: on_zoom(1, event)).classes('mx-auto').style('display: none;')
+                        plot3 = ui.plotly(fig3).on('plotly_relayout', lambda event: on_zoom(2, event)).classes('mx-auto').style('display: none;')
+                        plot4 = ui.plotly(fig4).on('plotly_relayout', lambda event: on_zoom(3, event)).classes('mx-auto').style('display: none;')
 
-                    fig4 = customize_plot(px.line(df_global, x='Time', y=y_columns, title='Plot 4', template="plotly_white"))
-                    plot4 = ui.plotly(fig4).on('plotly_relayout', lambda event: on_zoom(3, event)).classes('mx-auto').style('display: none;')
-
-                    figs = [fig1, fig2, fig3, fig4]
-                    plots = [plot1, plot2, plot3, plot4]
-
+                        figs = [fig1, fig2, fig3, fig4]
+                        plots = [plot1, plot2, plot3, plot4]
                     # Update plot visibility based on settings 
                     update_visibility()
 
@@ -414,13 +445,6 @@ def application_page():
                 grid.on('cellValueChanged', on_grid_value_change)
 
     update_layout()
-
-# create main (upload) page
-@ui.page('/')
-def main_page():
-    ui.markdown('### Upload CSV file').classes('mx-auto')
-    with ui.card().classes("mx-auto").style('background: transparent; border: none; box-shadow: none;'):
-        ui.upload(on_upload=handle_upload).props('accept=".csv"').classes('max-w-full')
 
 # run in native mode
 ui.run(title="PlottingApplication", native=True, fullscreen=False, window_size=(2500, 1300))
