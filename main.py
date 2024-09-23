@@ -62,7 +62,7 @@ def handle_upload(event):
         pass
 
     # redirect to results page
-    ui.run_javascript('window.location.href = "/results";')
+    ui.run_javascript('window.location.href = "/application";')
 
 # function to customize the plot
 def customize_plot(fig, line_width=1):
@@ -179,8 +179,11 @@ async def get_selected_rows():
     rows = await grid.get_selected_rows()
     print(rows)
 
-# load the main content
-def show_results():
+# create application route
+@ui.page('/application')
+def application_page():
+    # load the main content
+
     global df_global, plot1, plot2, plot3, plot4, sync_checkboxes, figs, plots, grid, data, line_width_slider
 
     y_columns = [col for col in df_global.columns if 'Unnamed' not in col and col != 'Time']
@@ -418,11 +421,6 @@ def main_page():
     ui.markdown('### Upload CSV file').classes('mx-auto')
     with ui.card().classes("mx-auto").style('background: transparent; border: none; box-shadow: none;'):
         ui.upload(on_upload=handle_upload).props('accept=".csv"').classes('max-w-full')
-
-# create results route
-@ui.page('/results')
-def results_page():
-    show_results()
 
 # run in native mode
 ui.run(title="PlottingApplication", native=True, fullscreen=False, window_size=(2500, 1300))
