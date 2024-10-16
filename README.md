@@ -2,7 +2,7 @@
 
 ## Overview
 
-Python-based plotting application built using the NiceGUI framework. It allows users to upload CSV files, visualize data in interactive plots, and manage signal visibility across multiple plots.
+Python-based plotting application built using the NiceGUI and Plotly framework. It allows users to upload CSV files, visualize data in interactive plots, and manage signal visibility across multiple plots.
 
 ## Features
 
@@ -20,7 +20,6 @@ Python-based plotting application built using the NiceGUI framework. It allows u
 - NiceGUI
 - pandas
 - plotly
-- io
 
 ## Installation
 
