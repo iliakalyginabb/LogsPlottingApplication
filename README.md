@@ -27,12 +27,14 @@ Python-based plotting application built using the NiceGUI and Plotly framework. 
 - Context menu for quick signal selection/deselection
 - Responsive design adapting to window size and drawer state
 
-## Requirements
+## Tools and Versions Used in Development
 
-- Python 3.7+
-- NiceGUI
-- pandas
-- plotly
+| Name    | Version |
+|---------|---------|
+| python  | 3.11.2  |
+| nicegui | 2.1.0   |
+| pandas  | 2.2.2   |
+| plotly  | 5.24.0  |
 
 ## Installation
 
