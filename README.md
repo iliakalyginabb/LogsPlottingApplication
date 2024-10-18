@@ -39,10 +39,14 @@ Python-based plotting application built using the NiceGUI and Plotly framework. 
 ## Installation
 
 1. Clone this repository
-2. Install the required packages:
-
+2. Install the required packages with latest versions:
     ```bash
    pip install nicegui pandas plotly
+   ```
+   or with versions used in development:
+
+    ```bash
+   pip install nicegui==2.1.0 pandas==2.2.2 plotly==5.24.0
    ```
 
 ## Usage
